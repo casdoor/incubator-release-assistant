@@ -1,0 +1,4 @@
+interface:
+  display_name: "Incubator Release Assistant"
+  short_description: "Config-driven Apache Incubator releases"
+  default_prompt: "Use $incubator-release-assistant to prepare and verify a source release candidate from a project config."

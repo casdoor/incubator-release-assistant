@@ -1,0 +1,16 @@
+{
+  "_说明": {
+    "repository": "Casbin源码仓库地址",
+    "commit": "制作本次RC的master完整commit，已填写",
+    "version": "本次发布版本，格式为x.y.z-incubating",
+    "rc": "本次候选编号，RC2填写2",
+    "apacheId": "执行SVN上传人员的Apache账号名",
+    "gpgFingerprint": "签名私钥的40位完整fingerprint"
+  },
+  "repository": "https://github.com/apache/casbin.git",
+  "commit": "08dab401f7e78a3af923239fff1fcef20ab78464",
+  "version": "3.11.0-incubating",
+  "rc": 2,
+  "apacheId": "replace-with-apache-id",
+  "gpgFingerprint": "replace-with-40-character-full-fingerprint"
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1",
+  "project": {
+    "id": "casbin",
+    "displayName": "Apache Casbin",
+    "language": "go",
+    "incubating": true
+  },
+  "source": {
+    "repository": "https://github.com/apache/casbin.git",
+    "commit": "0000000000000000000000000000000000000000",
+    "archivePrefix": "apache-casbin-3.11.0-incubating-src"
+  },
+  "release": {
+    "version": "3.11.0-incubating",
+    "rc": 2,
+    "artifactBaseName": "apache-casbin-3.11.0-incubating-src"
+  },
+  "checks": {
+    "requiredFiles": [
+      "LICENSE",
+      "NOTICE",
+      "DISCLAIMER",
+      "go.mod",
+      "go.sum",
+      ".rat-excludes"
+    ],
+    "commands": [
+      {
+        "name": "Go tests",
+        "run": "go test ./...",
+        "workingDirectory": "."
+      }
+    ],
+    "rat": {
+      "enabled": true,
+      "version": "0.18",
+      "excludeFile": ".rat-excludes"
+    }
+  },
+  "signing": {
+    "apacheId": "replace-with-apache-id",
+    "fingerprint": "0000000000000000000000000000000000000000",
+    "keysUrl": "https://dist.apache.org/repos/dist/release/incubator/casbin/KEYS",
+    "requireApacheUid": true,
+    "minimumRsaBits": 4096
+  },
+  "distribution": {
+    "devUrl": "https://dist.apache.org/repos/dist/dev/incubator/casbin",
+    "releaseUrl": "https://dist.apache.org/repos/dist/release/incubator/casbin"
+  },
+  "votes": {
+    "devList": "dev@casbin.apache.org",
+    "generalList": "general@incubator.apache.org",
+    "minimumHours": 72
+  }
+}

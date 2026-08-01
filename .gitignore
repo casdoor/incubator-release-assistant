@@ -1,0 +1,44 @@
+# Local release configuration and credentials
+.env
+.env.*
+!.env.example
+**/release.local.json
+config/local/
+config/**/*.local.json
+script.egg
+
+# Generated release work and downloaded tools
+artifacts/
+downloads/
+**/work/
+**/output/
+**/evidence/
+**/tools/
+**/dist-dev/
+**/public-download/
+
+# Release artifacts must live in ASF distribution, not this repository
+*.tar.gz
+*.zip
+*.asc
+*.sha512
+rat-report*.txt
+
+# Language and tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+node_modules/
+.gocache/
+.gomodcache/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
