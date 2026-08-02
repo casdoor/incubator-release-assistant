@@ -36,6 +36,50 @@ func TestValidCasbinConfig(t *testing.T) {
 	}
 }
 
+func TestSigningHomeMustBeInExternalSecretDirectory(t *testing.T) {
+	workspace := t.TempDir()
+	repository := filepath.Join(workspace, "Incubator-release-assistant")
+	if err := os.MkdirAll(filepath.Join(repository, "config", "local"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repository, "ira.ps1"), []byte("fixture\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := validConfig(t)
+	cfg.Path = filepath.Join(repository, "config", "local", "casbin.local.json")
+	external := filepath.Join(workspace, "secretkey")
+	if err := os.MkdirAll(external, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(SecretDirectoryEnvironment, external)
+	got, err := cfg.SigningGPGHome()
+	if err != nil {
+		t.Fatalf("external signing home rejected: %v", err)
+	}
+	if got != external {
+		t.Fatalf("unexpected signing home: %s", got)
+	}
+	outerGit := filepath.Join(workspace, ".git")
+	if err := os.Mkdir(outerGit, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cfg.SigningGPGHome(); err == nil || !strings.Contains(err.Error(), "any Git worktree") {
+		t.Fatalf("secret directory inside a larger Git worktree was accepted: %v", err)
+	}
+	if err := os.Remove(outerGit); err != nil {
+		t.Fatal(err)
+	}
+
+	inside := filepath.Join(repository, "secretkey")
+	if err := os.MkdirAll(inside, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(SecretDirectoryEnvironment, inside)
+	if _, err := cfg.SigningGPGHome(); err == nil || !strings.Contains(err.Error(), "outside") {
+		t.Fatalf("repository-contained secret directory was accepted: %v", err)
+	}
+}
+
 func TestRejectsUnsupportedAdapter(t *testing.T) {
 	cfg := validConfig(t)
 	cfg.Project.Adapter = "java"

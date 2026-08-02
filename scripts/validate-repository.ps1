@@ -42,6 +42,26 @@ foreach ($required in @(
     }
 }
 
+$powerShellWrapper = Get-Content -LiteralPath (Join-Path $releaseSkill "scripts\run.ps1") -Raw
+$bashWrapper = Get-Content -LiteralPath (Join-Path $releaseSkill "scripts\run.sh") -Raw
+foreach ($contract in @(
+    @($powerShellWrapper, "IRA_SECRET_DIR", "PowerShell wrapper does not export the external secret directory"),
+    @($powerShellWrapper, "GNUPGHOME", "PowerShell wrapper does not isolate the GPG home"),
+    @($powerShellWrapper, "outside the repository", "PowerShell wrapper does not reject repository-contained secrets"),
+    @($bashWrapper, "IRA_SECRET_DIR", "Bash wrapper does not export the external secret directory"),
+    @($bashWrapper, "GNUPGHOME", "Bash wrapper does not isolate the GPG home"),
+    @($bashWrapper, "outside the repository", "Bash wrapper does not reject repository-contained secrets")
+)) {
+    if ($contract[0] -notmatch [regex]::Escape($contract[1])) {
+        throw $contract[2]
+    }
+}
+
+$gitIgnore = Get-Content -LiteralPath (Join-Path $root ".gitignore") -Raw
+if ($gitIgnore -notmatch "(?m)^secretkey/\r?$") {
+    throw ".gitignore must exclude a mistakenly created repository-local secretkey directory"
+}
+
 $handbookSkillText = Get-Content -LiteralPath (Join-Path $handbookSkill "SKILL.md") -Raw
 if ($handbookSkillText -notmatch "(?s)^---\s*\r?\nname:\s*apache-incubator-handbook\s*\r?\ndescription:\s*.+?\r?\n---") {
     throw "Handbook Skill frontmatter is missing or invalid"

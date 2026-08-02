@@ -16,6 +16,8 @@ script.egg
 *.kbx
 .gnupg/
 **/private-keys-v1.d/
+secretkey/
+**/secretkey/
 credentials.json
 auth.json
 .npmrc

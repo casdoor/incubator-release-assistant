@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	SupportedSchema  = "3"
-	SupportedAdapter = "casbin-go"
+	SupportedSchema            = "3"
+	SupportedAdapter           = "casbin-go"
+	SecretDirectoryEnvironment = "IRA_SECRET_DIR"
 )
 
 var (
@@ -206,6 +207,68 @@ func (c *Config) RunRoot() (string, error) {
 		return "", err
 	}
 	return filepath.Join(abs, "runs", c.RunID()), nil
+}
+
+func (c *Config) SecretDirectory() (string, error) {
+	raw := strings.TrimSpace(os.Getenv(SecretDirectoryEnvironment))
+	if raw == "" {
+		return "", fmt.Errorf("%s is required; use the platform wrapper from the parent workspace or pass its external secret-directory option", SecretDirectoryEnvironment)
+	}
+	if !filepath.IsAbs(raw) {
+		return "", fmt.Errorf("%s must be an absolute path", SecretDirectoryEnvironment)
+	}
+	secret, err := filepath.EvalSymlinks(filepath.Clean(raw))
+	if err != nil {
+		return "", fmt.Errorf("resolve external secret directory: %w", err)
+	}
+	info, err := os.Stat(secret)
+	if err != nil {
+		return "", fmt.Errorf("inspect external secret directory: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("external secret path is not a directory: %s", secret)
+	}
+	repositoryRoot, err := filepath.EvalSymlinks(findWorkspaceRoot(filepath.Dir(c.Path)))
+	if err != nil {
+		return "", fmt.Errorf("resolve release-assistant repository root: %w", err)
+	}
+	inside, err := pathInsideOrEqual(secret, repositoryRoot)
+	if err != nil {
+		return "", err
+	}
+	if inside {
+		return "", fmt.Errorf("secret directory must be outside the release-assistant repository: %s", secret)
+	}
+	if gitRoot := containingGitRoot(secret); gitRoot != "" {
+		return "", fmt.Errorf("secret directory must not be inside any Git worktree; found Git metadata at %s", gitRoot)
+	}
+	return secret, nil
+}
+
+func (c *Config) SigningGPGHome() (string, error) {
+	return c.SecretDirectory()
+}
+
+func pathInsideOrEqual(path, root string) (bool, error) {
+	relative, err := filepath.Rel(root, path)
+	if err != nil {
+		return false, fmt.Errorf("compare repository and secret paths: %w", err)
+	}
+	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))), nil
+}
+
+func containingGitRoot(start string) string {
+	current := start
+	for {
+		if _, err := os.Stat(filepath.Join(current, ".git")); err == nil {
+			return current
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return ""
+		}
+		current = parent
+	}
 }
 
 func findWorkspaceRoot(start string) string {

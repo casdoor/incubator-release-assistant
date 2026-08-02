@@ -10,27 +10,35 @@ contract tests exist.
 ## Commands
 
 ```powershell
-# Human entry point
-.\ira.ps1 validate -Config .\config\local\casbin.local.json
-.\ira.ps1 plan -Config .\config\local\casbin.local.json
-.\ira.ps1 prepare -Config .\config\local\casbin.local.json
+# Human entry point from the parent workspace (for example C:\abc)
+.\Incubator-release-assistant\ira.ps1 validate `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json
+.\Incubator-release-assistant\ira.ps1 plan `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json
+.\Incubator-release-assistant\ira.ps1 prepare `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json
 
-# Engine tests
-$engine = ".\skills\incubator-release-assistant\scripts\ira"
+# Repository-maintenance commands, still from the parent workspace
+$repository = ".\Incubator-release-assistant"
+$engine = Join-Path $repository "skills\incubator-release-assistant\scripts\ira"
 go -C $engine test ./...
 go -C $engine vet ./...
 
 # Repository and Skill contract
-.\scripts\validate-repository.ps1
+& (Join-Path $repository "scripts\validate-repository.ps1")
 ```
 
 After changing root schema/example files, run
-`scripts/sync-skill-assets.ps1` and commit both mirrors.
+`Incubator-release-assistant/scripts/sync-skill-assets.ps1` and commit both
+mirrors.
 
 ## Non-negotiable boundaries
 
 - Project code executes only in the adapter container. Never add a host fallback.
 - The sandbox must not mount artifact, home, GPG, SSH, or credential paths.
+- The Agent runs from the parent workspace. Keep the checkout and secret root as
+  siblings (`/abc/Incubator-release-assistant` and `/abc/secretkey`); never
+  weaken the wrapper/engine rejection of repository-contained keys.
 - Signing and staging remain separate commands with exact human confirmations.
 - Configuration contains no arbitrary shell command.
 - ASF legal, disclaimer, RAT, checksum, signature, KEYS, no-overwrite,

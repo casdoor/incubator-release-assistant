@@ -15,7 +15,7 @@ strict config + project policy
     |
     +--> prepare domain --> adapter sandbox --> artifact + SHA-512 + evidence
     |
-    +--> sign domain ----> exact digest confirmation --> GPG + official KEYS
+    +--> sign domain ----> exact digest confirmation --> external GPG home + official KEYS
     |
     +--> stage domain ---> RC confirmation --> ASF dist --> public verification
 ```
@@ -54,6 +54,15 @@ Repository tests execute only in Docker/Podman. The container mounts the
 disposable extracted source, not the host home, artifact directory, GPG keyring,
 or SVN credentials. Signing is a later process which executes no source code.
 Staging is a third process with exact confirmation and no credential cache.
+
+The caller workspace and repository are separate security roots. In the normal
+layout Claude Code runs from `/abc`, the checkout is
+`/abc/Incubator-release-assistant`, and the wrappers export
+`IRA_SECRET_DIR=/abc/secretkey` with `GNUPGHOME=/abc/secretkey`. The Go
+engine resolves symlinks, rejects a secret directory inside the checkout, and
+rejects one captured by any larger Git worktree, then passes the external home
+explicitly to secret-key inspection and signing. `/abc` is therefore a plain
+workspace rather than another Git checkout.
 
 This separation is more important than the implementation language: it prevents
 a compromised test from modifying the signed archive or reading release keys.

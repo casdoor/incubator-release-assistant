@@ -289,12 +289,16 @@ func (e Engine) Sign(cfg *Config, confirmation string) (*State, error) {
 		fmt.Fprintln(e.out(), "Signature already exists; all three candidate files were revalidated byte-for-byte and no new signature was created.")
 		return state, nil
 	}
-	if err := e.verifySigningKey(cfg, runRoot); err != nil {
+	gpgHome, err := cfg.SigningGPGHome()
+	if err != nil {
+		return nil, err
+	}
+	if err := e.verifySigningKey(cfg, runRoot, gpgHome); err != nil {
 		return nil, err
 	}
 	artifact := filepath.Join(runRoot, "artifacts", cfg.ArtifactName())
 	signature := artifact + ".asc"
-	if err := e.Runner.RunInteractive(filepath.Join(runRoot, "evidence", "gpg-sign.log"), "", "gpg", "--armor", "--local-user", strings.ToUpper(cfg.Signing.Fingerprint), "--output", signature, "--detach-sign", artifact); err != nil {
+	if err := e.Runner.RunInteractive(filepath.Join(runRoot, "evidence", "gpg-sign.log"), "", "gpg", "--homedir", gpgHome, "--armor", "--local-user", strings.ToUpper(cfg.Signing.Fingerprint), "--output", signature, "--detach-sign", artifact); err != nil {
 		return nil, err
 	}
 	if err := e.verifySignatureWithOfficialKeys(cfg, runRoot, signature, artifact); err != nil {
@@ -477,8 +481,8 @@ func (e Engine) VerifyPublic(cfg *Config) error {
 	return nil
 }
 
-func (e Engine) verifySigningKey(cfg *Config, runRoot string) error {
-	out, err := e.Runner.Output("", "gpg", "--batch", "--with-colons", "--list-secret-keys", strings.ToUpper(cfg.Signing.Fingerprint))
+func (e Engine) verifySigningKey(cfg *Config, runRoot, gpgHome string) error {
+	out, err := e.Runner.Output("", "gpg", "--homedir", gpgHome, "--batch", "--with-colons", "--list-secret-keys", strings.ToUpper(cfg.Signing.Fingerprint))
 	if err != nil {
 		return fmt.Errorf("configured signing private key is unavailable: %w", err)
 	}

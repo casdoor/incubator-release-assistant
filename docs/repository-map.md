@@ -26,6 +26,11 @@ ira.ps1 / ira.sh
 - `ira.ps1`: 完整仓库的 Windows 入口，转交给 Skill 内 `scripts/run.ps1`。
 - `ira.sh`: 完整仓库的 Linux/macOS 入口，转交给 Skill 内 `scripts/run.sh`。
 
+这两个入口预期由仓库父目录调用。例如 Agent 在 `/abc` 工作，仓库位于
+`/abc/Incubator-release-assistant`；包装脚本会把 `/abc/secretkey`
+设置为外置 GPG home，并拒绝仓库内部或任何更大 Git 工作树内的密钥目录。
+因此 `/abc` 本身应为普通目录，而不是 Git 仓库。
+
 ## `.github/`
 
 - `.github/workflows/ci.yml`: 在 Windows、Linux 和 macOS 上检查 Go 格式、
@@ -92,13 +97,14 @@ Skill 后不依赖仓库根目录源码。
 - `SKILL.md`: Agent 的正常工作流：选 commit、prepare、sign、stage、公开
   复验，最后提醒作者亲自检查 RAT 和法律文件。
 - `agents/openai.yaml`: Skill 在客户端显示的名称、短描述和默认提示语。
-- `evals/evals.json`: 四个行为样例，覆盖只 prepare、恢复后签名、拒绝未实现
-  的 Java/任意命令，以及 macOS 使用 Bash 入口。
+- `evals/evals.json`: 五个行为样例，覆盖只 prepare、恢复后签名、拒绝未实现
+  的 Java/任意命令、macOS 使用 Bash 入口，以及 `/abc` 外置密钥布局。
 - `references/configuration.md`: 仅在创建或修改配置时读取的字段说明。
 - `assets/release.schema.json`: `config/release.schema.json` 的 Skill 内镜像。
 - `assets/examples/casbin-go.json`: 根目录 Casbin 示例的 Skill 内镜像。
-- `scripts/run.ps1`: Windows PowerShell 5.1+ 入口。
-- `scripts/run.sh`: Linux/macOS Bash 入口。
+- `scripts/run.ps1`: Windows PowerShell 5.1+ 入口，解析外置
+  `-SecretDirectory`。
+- `scripts/run.sh`: Linux/macOS Bash 入口，解析外置 `--secret-dir`。
 
 ### Bundled Go engine
 
@@ -106,7 +112,7 @@ Skill 后不依赖仓库根目录源码。
 - `scripts/ira/cmd/ira/main.go`: CLI 命令分发，提供 `validate`、`plan`、
   `prepare`、`sign`、`stage`、`verify-public` 和 `version`。
 - `scripts/ira/internal/release/config.go`: 读取、严格校验配置，并派生运行 ID、
-  产物名和 `.ira/runs/...` 状态目录。
+  产物名和 `.ira/runs/...` 状态目录，同时验证外置密钥目录不在仓库内。
 - `scripts/ira/internal/release/engine.go`: 核心流程；克隆 commit、打包、解压、
   RAT、容器测试、SHA-512、GPG 签名、SVN 上传和公开复验都在这里编排。
 - `scripts/ira/internal/release/state.go`: 保存 prepare/sign/stage/publicVerified
@@ -136,6 +142,9 @@ Skill 后不依赖仓库根目录源码。
 - `.git/`: Git 元数据。
 - `.gocache/`: 本地 Go 编译缓存，由测试产生且已忽略。
 - `.ira/`: 本地运行状态、证据、工作目录和 Go 缓存；已忽略，不能提交。
+
+`/abc/secretkey/` 不在本仓库目录中，因此没有出现在上面的文件树。它只保存
+发布者的密钥材料；Git、测试容器和 ASF 上传步骤都不应读取或复制它。
 
 实际 RC 运行后，`.ira/runs/<project>-<version>-rc<n>/` 会进一步包含
 `state.json`、`artifacts/`、`work/` 和 `evidence/`。

@@ -22,6 +22,9 @@
 - arbitrary commands are absent from configuration;
 - RAT downloads are obtained from ASF and verified with the published SHA-512;
 - project code runs in a container without artifact or credential mounts;
+- platform wrappers keep the signing keyring in an external sibling
+  `secretkey` directory, and the engine rejects repository-contained or
+  relative secret paths;
 - signing and staging require exact, stage-specific human confirmations;
 - state freezes separate archive, checksum-file, and signature-file digests;
 - every frozen file is re-hashed on resume, before staging, and after public
@@ -30,6 +33,13 @@
 - public files are downloaded and verified after staging;
 - local configs, state, artifacts, evidence, credentials, and common key formats
   are ignored, while CI scans committed history for secrets.
+
+The expected checkout `/abc/Incubator-release-assistant` and key root
+`/abc/secretkey` are siblings under a non-Git `/abc` workspace. Git never
+traverses the sibling directory, and
+staging uploads only the source archive, LF-only checksum, and detached public
+signature. Private key files are neither mounted into the test container nor
+copied into release artifacts.
 
 ## Residual risks
 

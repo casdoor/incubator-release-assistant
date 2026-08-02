@@ -21,12 +21,20 @@ preconditions.
 
 ## Establish the run
 
-1. Resolve this Skill directory and the user's workspace.
-2. Read `references/configuration.md` when creating or changing config.
-3. Copy `assets/examples/casbin-go.json` to an ignored project-local path if no
+1. Treat the Agent's current directory as the parent workspace. In the expected
+   deployment Claude Code works from `/abc`, the repository is
+   `/abc/Incubator-release-assistant`, and all signing-key material is under
+   `/abc/secretkey`.
+2. Keep the secret directory outside every Git checkout. The platform wrapper
+   defaults to `<current-directory>/secretkey`, creates only that empty directory
+   when needed, and rejects a path contained by the release repository
+   or any larger Git worktree. `/abc` must therefore be a plain workspace. Only
+   `sign` may resolve or access this directory; earlier and later stages do not.
+3. Read `references/configuration.md` when creating or changing config.
+4. Copy `assets/examples/casbin-go.json` to an ignored project-local path if no
    active configuration exists. Never fill Apache ID, commit, or fingerprint by
    guessing; obtain them from the user or verified public state.
-4. Use the bundled wrapper for the current platform. Both wrappers resolve a
+5. Use the bundled wrapper for the current platform. Both wrappers resolve a
    relative config path from the caller's working directory and run the same Go
    engine.
 
@@ -83,7 +91,9 @@ bash <skill-directory>/scripts/run.sh sign \
 The engine re-hashes the artifact, uses the configured signing key, creates the
 detached signature, and verifies it. It records the archive, checksum, and
 signature digests in `evidence/candidate-manifest.txt`. Never request or store
-a passphrase.
+a passphrase. The signing key must come from
+`<parent-workspace>/secretkey`; do not fall back to `~/.gnupg` and do not
+copy private-key material into the repository.
 
 ## Stage and publicly verify
 
@@ -129,6 +139,8 @@ only when the user asks; they are not part of this Skill's normal RC run.
 - Current executable adapter: `casbin-go` only.
 - Do not execute arbitrary commands from JSON or introduce a host-test fallback.
 - Do not store passwords, tokens, cookies, private keys, or private-list text.
+- Never stage, commit, upload, or mount `<parent-workspace>/secretkey`; only GPG
+  may access that directory during the separate sign step.
 - Follow the engine's validation and stop on an actual command failure.
 - Treat any byte change in the archive, checksum file, or signature file as a
   different candidate that requires a new RC and fresh votes.

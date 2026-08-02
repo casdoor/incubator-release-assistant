@@ -10,6 +10,8 @@ param(
 
     [string]$Confirm,
 
+    [string]$SecretDirectory,
+
     [switch]$Clean
 )
 

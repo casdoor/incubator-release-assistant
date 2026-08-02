@@ -46,3 +46,18 @@ adapter implementation and runs only in the container.
 
 Never place passwords, private keys, tokens, cookies, SSH material, or private
 mail in configuration.
+
+## External secret directory
+
+The secret location is deliberately not a JSON field. Start the Agent from the
+parent workspace and let the platform wrapper use
+`<current-directory>/secretkey`, or pass `-SecretDirectory` on PowerShell and
+`--secret-dir` on Bash. During `sign`, the wrapper exports an absolute
+`IRA_SECRET_DIR` and sets `GNUPGHOME` to the same directory before invoking the
+engine. Other stages do not inspect or create the secret directory.
+
+For the standard deployment this resolves to `/abc/secretkey` while the
+repository remains `/abc/Incubator-release-assistant`. The engine rejects a
+missing, relative, repository-contained, or larger-Git-worktree-contained
+secret directory. The release JSON contains only the public fingerprint and
+Apache ID; no key bytes or passphrase.

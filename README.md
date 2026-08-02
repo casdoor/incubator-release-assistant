@@ -32,6 +32,7 @@ added without weakening the shared release gates.
 - `go test ./...` inside Docker or Podman with only a disposable extracted
   source tree mounted—the host artifact directory and credentials are absent;
 - separate `prepare`, `sign`, and `stage` trust boundaries;
+- an external signing home under the parent workspace, never inside Git;
 - signing-key and official `KEYS` verification in an isolated public keyring;
 - no-overwrite ASF dist dev staging and public byte-for-byte re-verification;
 - resumable state under ignored `.ira/runs/`;
@@ -49,14 +50,55 @@ The release Skill includes `scripts/run.ps1` for Windows PowerShell 5.1+ and
 The container engine is a security boundary. IRA intentionally has no
 "run project tests directly on the signing host" fallback.
 
+## Expected Claude Code workspace
+
+Run Claude Code from the parent workspace, not from inside the repository. The
+parent `/abc` directory itself must not be a Git checkout. The normal
+Linux/macOS layout is:
+
+```text
+/abc/
+├── Incubator-release-assistant/   cloned Git repository
+└── secretkey/                     release manager's GPG home; never a Git repository
+```
+
+Clone with the intended directory name and prepare the external key directory:
+
+```bash
+cd /abc
+git clone https://github.com/EmryZhang/incubator-release-assistant.git Incubator-release-assistant
+mkdir -p secretkey
+chmod 700 secretkey
+```
+
+Import or generate the signing key with `GNUPGHOME=/abc/secretkey`.
+Do not copy a private-key export, keyring, passphrase, token, or credential file
+into `Incubator-release-assistant/`. The wrappers reject a secret directory
+inside the repository. `.gitignore` also excludes a mistakenly created
+`secretkey/` as defence in depth, but ignore rules are not the security boundary.
+The wrappers and engine also reject `secretkey` when any parent directory owns
+Git metadata, preventing accidental capture by a larger wrapper repository.
+
+The ASF `KEYS` file is public verification material. IRA downloads a disposable
+copy under ignored run state; it is not the release manager's private keyring.
+
 ## Human workflow
 
-Copy and fill the non-secret template:
+From `/abc`, copy and fill the non-secret template:
+
+```bash
+mkdir -p ./Incubator-release-assistant/config/local
+cp ./Incubator-release-assistant/config/examples/casbin-go.json \
+  ./Incubator-release-assistant/config/local/casbin.local.json
+```
+
+The corresponding PowerShell setup from a parent workspace is:
 
 ```powershell
-New-Item -ItemType Directory -Force .\config\local | Out-Null
-Copy-Item .\config\examples\casbin-go.json .\config\local\casbin.local.json
-notepad .\config\local\casbin.local.json
+New-Item -ItemType Directory -Force .\Incubator-release-assistant\config\local | Out-Null
+Copy-Item .\Incubator-release-assistant\config\examples\casbin-go.json `
+  .\Incubator-release-assistant\config\local\casbin.local.json
+notepad .\Incubator-release-assistant\config\local\casbin.local.json
 ```
 
 Only the commit, version/RC-derived names, Apache ID, signer fingerprint, and
@@ -65,20 +107,53 @@ tokens, and cookies never belong in JSON.
 
 Then run:
 
+```bash
+./Incubator-release-assistant/ira.sh validate \
+  --config ./Incubator-release-assistant/config/local/casbin.local.json
+./Incubator-release-assistant/ira.sh plan \
+  --config ./Incubator-release-assistant/config/local/casbin.local.json
+./Incubator-release-assistant/ira.sh prepare \
+  --config ./Incubator-release-assistant/config/local/casbin.local.json
+```
+
+During the later `sign` command, the Bash wrapper defaults to
+`/abc/secretkey` because the caller is `/abc`. Override it only with another
+absolute external directory by passing `--secret-dir`. Validation, planning,
+preparation, staging, and public verification do not access the private key
+directory.
+
+On Windows, use the same parent-workspace layout:
+
 ```powershell
-.\ira.ps1 validate -Config .\config\local\casbin.local.json
-.\ira.ps1 plan -Config .\config\local\casbin.local.json
-.\ira.ps1 prepare -Config .\config\local\casbin.local.json
+.\Incubator-release-assistant\ira.ps1 validate `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json
+.\Incubator-release-assistant\ira.ps1 plan `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json
+.\Incubator-release-assistant\ira.ps1 prepare `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json
 ```
 
 `prepare` prints the exact SHA-512 required for the next explicit boundary:
 
 ```powershell
-.\ira.ps1 sign -Config .\config\local\casbin.local.json `
+.\Incubator-release-assistant\ira.ps1 sign `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json `
   -Confirm <exact-128-character-sha512>
 
-.\ira.ps1 stage -Config .\config\local\casbin.local.json `
+.\Incubator-release-assistant\ira.ps1 stage `
+  -Config .\Incubator-release-assistant\config\local\casbin.local.json `
   -Confirm "STAGE RC2"
+```
+
+On Linux/macOS, remain in `/abc` and use:
+
+```bash
+./Incubator-release-assistant/ira.sh sign \
+  --config ./Incubator-release-assistant/config/local/casbin.local.json \
+  --confirm <exact-128-character-sha512>
+./Incubator-release-assistant/ira.sh stage \
+  --config ./Incubator-release-assistant/config/local/casbin.local.json \
+  --confirm "STAGE RC2"
 ```
 
 Staging automatically re-downloads the public candidate and verifies its
@@ -90,8 +165,6 @@ After the run succeeds, the project author must still personally inspect the
 RAT report, every `.rat-excludes` entry, and the actual `LICENSE`, `NOTICE`, and
 `DISCLAIMER` content. RAT reporting zero unapproved files does not by itself
 approve the legal reason for an exclusion or bundled third-party material.
-
-On Linux/macOS, use the same subcommands through `bash ./ira.sh`.
 
 ## What signing and "exact bytes" mean
 
@@ -128,7 +201,8 @@ The release is split into three trust domains:
    artifacts, the user's home directory, GPG keyring, or ASF credentials.
 2. `sign` executes no repository code. It re-hashes the prepared artifact and
    requires the human to repeat that exact digest before accessing GPG. It
-   then freezes the archive, checksum, and signature file digests.
+   explicitly uses the external `<workspace>/secretkey` home, then freezes
+   the archive, checksum, and signature file digests.
 3. `stage` revalidates all three frozen files and the GPG signature, requires
    `STAGE RC<n>`, refuses existing remote RC directories, avoids credential
    caching, and verifies every public file byte-for-byte.
@@ -155,6 +229,9 @@ skills/incubator-release-assistant/
 scripts/sync-skill-assets.ps1   Keeps Skill assets identical to root config
 ira.ps1 / ira.sh                Human-friendly entry points
 ```
+
+`secretkey/` is intentionally absent from this tree because it is a sibling of
+the repository, not repository content.
 
 For a file-by-file explanation, see
 [`docs/repository-map.md`](docs/repository-map.md).
