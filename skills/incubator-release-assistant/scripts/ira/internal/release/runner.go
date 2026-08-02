@@ -1,7 +1,7 @@
 package release
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -74,27 +74,25 @@ func writeText(path, value string) error {
 }
 
 func readChecksum(path, artifactName string) (string, error) {
-	f, err := os.Open(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	if !scanner.Scan() {
-		return "", fmt.Errorf("checksum file is empty")
+	expectedLength := 128 + 2 + len(artifactName) + 1
+	if len(raw) != expectedLength {
+		return "", fmt.Errorf("checksum file must contain exactly one canonical LF-terminated line")
 	}
-	line := scanner.Text()
-	if scanner.Scan() {
-		return "", fmt.Errorf("checksum file has more than one line")
+	if raw[len(raw)-1] != '\n' || bytes.ContainsRune(raw, '\r') {
+		return "", fmt.Errorf("checksum file must end with exactly one LF and contain no CR bytes")
 	}
-	parts := strings.SplitN(line, "  ", 2)
-	if len(parts) != 2 || parts[1] != artifactName || len(parts[0]) != 128 {
+	digest := string(raw[:128])
+	if string(raw[128:]) != "  "+artifactName+"\n" {
 		return "", fmt.Errorf("checksum format must be '<128 lowercase hex>  %s'", artifactName)
 	}
-	for _, ch := range parts[0] {
+	for _, ch := range digest {
 		if !strings.ContainsRune("0123456789abcdef", ch) {
 			return "", fmt.Errorf("checksum must use lowercase hexadecimal")
 		}
 	}
-	return parts[0], scanner.Err()
+	return digest, nil
 }

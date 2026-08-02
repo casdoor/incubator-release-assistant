@@ -32,12 +32,10 @@ Trust boundaries
   1. prepare: clone/archive/RAT; run Go tests only inside the container, without host credentials or artifact access
   2. sign: verify the prepared SHA-512, then require the exact digest as human confirmation before using GPG
   3. stage: require "STAGE RC%d", refuse an existing remote RC, upload, then re-download and verify public bytes
-
-This release requires both the podling dev vote and the Incubator general vote, each open for at least %d hours.
 `, cfg.Project.DisplayName, cfg.Project.ID, cfg.Project.Adapter, cfg.Source.Repository,
 		stringsLower(cfg.Source.Commit), cfg.RunID(), cfg.ArtifactName(),
 		cfg.Runtime.Container.Engine, cfg.Runtime.Container.Image, cfg.Runtime.Container.Network,
-		cfg.Runtime.StateDirectory, cfg.Release.RC, cfg.Votes.MinimumHours)
+		cfg.Runtime.StateDirectory, cfg.Release.RC)
 }
 
 func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
@@ -88,7 +86,7 @@ func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
 	}
 
 	sourceRepo := filepath.Join(work, "source-repository")
-	if err := e.Runner.Run(filepath.Join(evidence, "git-clone.log"), "", "git", "-c", "http.sslBackend=openssl", "clone", "--no-checkout", "--no-tags", cfg.Source.Repository, sourceRepo); err != nil {
+	if err := e.Runner.Run(filepath.Join(evidence, "git-clone.log"), "", "git", "clone", "--no-checkout", "--no-tags", cfg.Source.Repository, sourceRepo); err != nil {
 		return nil, err
 	}
 	resolved, err := e.Runner.Output("", "git", "-C", sourceRepo, "rev-parse", cfg.Source.Commit+"^{commit}")
@@ -140,12 +138,17 @@ func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
 	if parsed, err := readChecksum(checksumPath, cfg.ArtifactName()); err != nil || parsed != digest {
 		return nil, fmt.Errorf("generated checksum did not pass independent validation: %w", err)
 	}
+	checksumDigest, err := sha512File(checksumPath)
+	if err != nil {
+		return nil, err
+	}
 	state.ArtifactSHA512 = digest
+	state.ChecksumSHA512 = checksumDigest
 	state.Prepared = true
 	if err := state.Save(runRoot); err != nil {
 		return nil, err
 	}
-	if err := writeText(filepath.Join(evidence, "release-manifest.txt"), fmt.Sprintf("Repository: %s\nCommit: %s\nArtifact: %s\nSHA512: %s\n", cfg.Source.Repository, stringsLower(cfg.Source.Commit), cfg.ArtifactName(), digest)); err != nil {
+	if err := writeText(filepath.Join(evidence, "release-manifest.txt"), fmt.Sprintf("Repository: %s\nCommit: %s\nArtifact: %s\nArtifact SHA512: %s\nChecksum file SHA512: %s\n", cfg.Source.Repository, stringsLower(cfg.Source.Commit), cfg.ArtifactName(), digest, checksumDigest)); err != nil {
 		return nil, err
 	}
 	fmt.Fprintf(e.out(), "Prepared and verified %s\nSHA-512: %s\nNext: ira sign --config %q --confirm %s\n", artifactPath, digest, cfg.Path, digest)
@@ -280,7 +283,10 @@ func (e Engine) Sign(cfg *Config, confirmation string) (*State, error) {
 		}
 	}
 	if state.Signed {
-		fmt.Fprintln(e.out(), "Signature already exists; prepared bytes were revalidated and no new signature was created.")
+		if err := e.verifyReleaseFiles(cfg, runRoot, state); err != nil {
+			return nil, fmt.Errorf("signed state failed exact-byte revalidation: %w", err)
+		}
+		fmt.Fprintln(e.out(), "Signature already exists; all three candidate files were revalidated byte-for-byte and no new signature was created.")
 		return state, nil
 	}
 	if err := e.verifySigningKey(cfg, runRoot); err != nil {
@@ -294,9 +300,17 @@ func (e Engine) Sign(cfg *Config, confirmation string) (*State, error) {
 	if err := e.verifySignatureWithOfficialKeys(cfg, runRoot, signature, artifact); err != nil {
 		return nil, err
 	}
+	signatureDigest, err := sha512File(signature)
+	if err != nil {
+		return nil, err
+	}
 	state.Signed = true
 	state.Signer = strings.ToUpper(cfg.Signing.Fingerprint)
+	state.SignatureSHA512 = signatureDigest
 	if err := state.Save(runRoot); err != nil {
+		return nil, err
+	}
+	if err := writeText(filepath.Join(runRoot, "evidence", "candidate-manifest.txt"), fmt.Sprintf("Artifact: %s\nArtifact SHA512: %s\nChecksum file: %s.sha512\nChecksum file SHA512: %s\nSignature file: %s.asc\nSignature file SHA512: %s\nSigner primary fingerprint: %s\n", cfg.ArtifactName(), state.ArtifactSHA512, cfg.ArtifactName(), state.ChecksumSHA512, cfg.ArtifactName(), state.SignatureSHA512, state.Signer)); err != nil {
 		return nil, err
 	}
 	fmt.Fprintf(e.out(), "Signature created and verified with the official KEYS file.\nNext: ira stage --config %q --confirm \"STAGE RC%d\"\n", cfg.Path, cfg.Release.RC)
@@ -315,7 +329,7 @@ func (e Engine) Stage(cfg *Config, confirmation string) (*State, error) {
 	if !state.Signed {
 		return nil, fmt.Errorf("candidate must be signed before staging")
 	}
-	if err := verifyReleaseFiles(cfg, runRoot, state); err != nil {
+	if err := e.verifyReleaseFiles(cfg, runRoot, state); err != nil {
 		return nil, err
 	}
 	expectedConfirmation := fmt.Sprintf("STAGE RC%d", cfg.Release.RC)
@@ -412,6 +426,12 @@ func (e Engine) VerifyPublic(cfg *Config) error {
 	if !state.Staged || state.PublicURL == "" {
 		return fmt.Errorf("candidate has not been staged")
 	}
+	if state.PublicVerified {
+		state.PublicVerified = false
+		if err := state.Save(runRoot); err != nil {
+			return err
+		}
+	}
 	publicDir := filepath.Join(runRoot, "work", "public-download")
 	if err := removeContained(publicDir, filepath.Join(runRoot, "work")); err != nil {
 		return err
@@ -421,6 +441,16 @@ func (e Engine) VerifyPublic(cfg *Config) error {
 	}
 	for _, name := range releaseFileNames(cfg) {
 		if err := e.Runner.Run(filepath.Join(runRoot, "evidence", "public-download-"+safeLogName(name)+".log"), "", "svn", "export", "--force", state.PublicURL+name, filepath.Join(publicDir, name)); err != nil {
+			return err
+		}
+	}
+	expectedDigests := map[string]string{
+		cfg.ArtifactName():             state.ArtifactSHA512,
+		cfg.ArtifactName() + ".sha512": state.ChecksumSHA512,
+		cfg.ArtifactName() + ".asc":    state.SignatureSHA512,
+	}
+	for name, expected := range expectedDigests {
+		if err := verifyExactFileDigest(filepath.Join(publicDir, name), expected, "public "+name); err != nil {
 			return err
 		}
 	}
@@ -558,30 +588,45 @@ func verifyNoEscapingSymlinks(root string) error {
 
 func verifyPreparedFiles(cfg *Config, runRoot string, state *State) error {
 	artifact := filepath.Join(runRoot, "artifacts", cfg.ArtifactName())
-	digest, err := sha512File(artifact)
+	if err := verifyExactFileDigest(artifact, state.ArtifactSHA512, "source artifact"); err != nil {
+		return err
+	}
+	checksumPath := artifact + ".sha512"
+	if err := verifyExactFileDigest(checksumPath, state.ChecksumSHA512, "checksum file"); err != nil {
+		return err
+	}
+	checksum, err := readChecksum(checksumPath, cfg.ArtifactName())
 	if err != nil {
 		return err
 	}
-	if digest != state.ArtifactSHA512 {
-		return fmt.Errorf("artifact SHA-512 differs from recorded state")
-	}
-	checksum, err := readChecksum(artifact+".sha512", cfg.ArtifactName())
-	if err != nil {
-		return err
-	}
-	if checksum != digest {
+	if checksum != state.ArtifactSHA512 {
 		return fmt.Errorf("checksum file does not match artifact")
 	}
 	return nil
 }
 
-func verifyReleaseFiles(cfg *Config, runRoot string, state *State) error {
+func (e Engine) verifyReleaseFiles(cfg *Config, runRoot string, state *State) error {
 	if err := verifyPreparedFiles(cfg, runRoot, state); err != nil {
 		return err
 	}
-	info, err := os.Stat(filepath.Join(runRoot, "artifacts", cfg.ArtifactName()+".asc"))
-	if err != nil || info.Size() == 0 {
-		return fmt.Errorf("detached signature is missing or empty")
+	artifact := filepath.Join(runRoot, "artifacts", cfg.ArtifactName())
+	signature := artifact + ".asc"
+	if err := verifyExactFileDigest(signature, state.SignatureSHA512, "detached signature"); err != nil {
+		return err
+	}
+	return e.verifySignatureWithOfficialKeys(cfg, runRoot, signature, artifact)
+}
+
+func verifyExactFileDigest(path, expected, label string) error {
+	if expected == "" {
+		return fmt.Errorf("%s has no frozen SHA-512 digest in state", label)
+	}
+	actual, err := sha512File(path)
+	if err != nil {
+		return err
+	}
+	if actual != expected {
+		return fmt.Errorf("%s bytes differ from the frozen candidate", label)
 	}
 	return nil
 }

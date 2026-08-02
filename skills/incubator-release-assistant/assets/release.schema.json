@@ -4,9 +4,9 @@
   "title": "IRA Apache Casbin Go source release configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "project", "source", "release", "checks", "signing", "distribution", "votes", "runtime"],
+  "required": ["schemaVersion", "project", "source", "release", "checks", "signing", "distribution", "runtime"],
   "properties": {
-    "schemaVersion": {"const": "2"},
+    "schemaVersion": {"const": "3"},
     "project": {
       "type": "object",
       "additionalProperties": false,
@@ -84,20 +84,9 @@
     "distribution": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["devUrl", "releaseUrl"],
+      "required": ["devUrl"],
       "properties": {
-        "devUrl": {"const": "https://dist.apache.org/repos/dist/dev/incubator/casbin"},
-        "releaseUrl": {"const": "https://dist.apache.org/repos/dist/release/incubator/casbin"}
-      }
-    },
-    "votes": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["devList", "generalList", "minimumHours"],
-      "properties": {
-        "devList": {"const": "dev@casbin.apache.org"},
-        "generalList": {"const": "general@incubator.apache.org"},
-        "minimumHours": {"type": "integer", "minimum": 72}
+        "devUrl": {"const": "https://dist.apache.org/repos/dist/dev/incubator/casbin"}
       }
     },
     "runtime": {

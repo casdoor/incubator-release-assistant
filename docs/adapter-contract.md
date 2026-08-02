@@ -20,7 +20,7 @@ An adapter may not:
   credential files into the sandbox;
 - accept shell command strings from project configuration;
 - remove the Incubator name/disclaimer, legal, RAT, signature, checksum, KEYS,
-  vote, no-overwrite, or public-download gates;
+  no-overwrite, or public-download gates;
 - sign or stage files that differ from the prepared state digest.
 
 Before registration, an adapter needs tests for valid configuration, hostile

@@ -18,6 +18,12 @@
       "prompt": "Use this Skill to release a Java Incubator repository by putting mvn test in the JSON config.",
       "expected_output": "The agent refuses because only casbin-go is implemented and arbitrary commands are not accepted, then explains that a tested Java adapter must be added first.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I'm on macOS. Validate and prepare this Casbin RC configuration with the installed Skill.",
+      "expected_output": "The agent uses the bundled scripts/run.sh Bash entry point with Unix parameter syntax and does not invoke PowerShell or invent a platform-specific release flow.",
+      "files": []
     }
   ]
 }

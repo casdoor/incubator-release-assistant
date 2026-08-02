@@ -2,11 +2,12 @@
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$skill = Join-Path $root "skills\incubator-release-assistant"
+$releaseSkill = Join-Path $root "skills\incubator-release-assistant"
+$handbookSkill = Join-Path $root "skills\apache-incubator-handbook"
 
 $pairs = @(
-    @((Join-Path $root "config\release.schema.json"), (Join-Path $skill "assets\release.schema.json")),
-    @((Join-Path $root "config\examples\casbin-go.json"), (Join-Path $skill "assets\examples\casbin-go.json"))
+    @((Join-Path $root "config\release.schema.json"), (Join-Path $releaseSkill "assets\release.schema.json")),
+    @((Join-Path $root "config\examples\casbin-go.json"), (Join-Path $releaseSkill "assets\examples\casbin-go.json"))
 )
 
 foreach ($pair in $pairs) {
@@ -19,23 +20,47 @@ foreach ($pair in $pairs) {
 
 Get-Content -LiteralPath (Join-Path $root "config\release.schema.json") -Raw | ConvertFrom-Json | Out-Null
 Get-Content -LiteralPath (Join-Path $root "config\examples\casbin-go.json") -Raw | ConvertFrom-Json | Out-Null
+Get-Content -LiteralPath (Join-Path $releaseSkill "evals\evals.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
+Get-Content -LiteralPath (Join-Path $handbookSkill "evals\evals.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
 
-$skillText = Get-Content -LiteralPath (Join-Path $skill "SKILL.md") -Raw
-if ($skillText -notmatch "(?s)^---\s*\r?\nname:\s*incubator-release-assistant\s*\r?\ndescription:\s*.+?\r?\n---") {
-    throw "SKILL.md frontmatter is missing or invalid"
+$releaseSkillText = Get-Content -LiteralPath (Join-Path $releaseSkill "SKILL.md") -Raw
+if ($releaseSkillText -notmatch "(?s)^---\s*\r?\nname:\s*incubator-release-assistant\s*\r?\ndescription:\s*.+?\r?\n---") {
+    throw "Release Skill frontmatter is missing or invalid"
 }
 
 foreach ($required in @(
     "scripts\ira\go.mod",
     "scripts\ira\cmd\ira\main.go",
+    "scripts\run.ps1",
+    "scripts\run.sh",
     "assets\release.schema.json",
     "assets\examples\casbin-go.json",
-    "references\configuration.md",
-    "references\apache-release-gates.md"
+    "references\configuration.md"
 )) {
-    if (-not (Test-Path -LiteralPath (Join-Path $skill $required) -PathType Leaf)) {
-        throw "Self-contained Skill resource is missing: $required"
+    if (-not (Test-Path -LiteralPath (Join-Path $releaseSkill $required) -PathType Leaf)) {
+        throw "Release Skill resource is missing: $required"
     }
 }
 
-Write-Host "Repository contract is valid."
+$handbookSkillText = Get-Content -LiteralPath (Join-Path $handbookSkill "SKILL.md") -Raw
+if ($handbookSkillText -notmatch "(?s)^---\s*\r?\nname:\s*apache-incubator-handbook\s*\r?\ndescription:\s*.+?\r?\n---") {
+    throw "Handbook Skill frontmatter is missing or invalid"
+}
+
+foreach ($required in @(
+    "references\README.md",
+    "references\01-lifecycle-and-roles.md",
+    "references\02-governance-and-reporting.md",
+    "references\03-releases-voting-and-distribution.md",
+    "references\04-ip-and-licensing.md",
+    "references\05-branding-and-websites.md",
+    "references\06-community-graduation-and-retirement.md",
+    "references\07-infrastructure-accounts-and-security.md",
+    "references\official-sources.md"
+)) {
+    if (-not (Test-Path -LiteralPath (Join-Path $handbookSkill $required) -PathType Leaf)) {
+        throw "Handbook Skill resource is missing: $required"
+    }
+}
+
+Write-Host "Repository and both Skill contracts are valid."

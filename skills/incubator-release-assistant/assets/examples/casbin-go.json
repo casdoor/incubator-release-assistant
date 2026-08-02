@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2",
+  "schemaVersion": "3",
   "project": {
     "id": "casbin",
     "displayName": "Apache Casbin",
@@ -32,13 +32,7 @@
     "minimumRsaBits": 4096
   },
   "distribution": {
-    "devUrl": "https://dist.apache.org/repos/dist/dev/incubator/casbin",
-    "releaseUrl": "https://dist.apache.org/repos/dist/release/incubator/casbin"
-  },
-  "votes": {
-    "devList": "dev@casbin.apache.org",
-    "generalList": "general@incubator.apache.org",
-    "minimumHours": 72
+    "devUrl": "https://dist.apache.org/repos/dist/dev/incubator/casbin"
   },
   "runtime": {
     "stateDirectory": ".ira",

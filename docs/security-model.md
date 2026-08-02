@@ -23,7 +23,9 @@
 - RAT downloads are obtained from ASF and verified with the published SHA-512;
 - project code runs in a container without artifact or credential mounts;
 - signing and staging require exact, stage-specific human confirmations;
-- state and release files are re-hashed on resume;
+- state freezes separate archive, checksum-file, and signature-file digests;
+- every frozen file is re-hashed on resume, before staging, and after public
+  download;
 - existing remote RC directories are never overwritten;
 - public files are downloaded and verified after staging;
 - local configs, state, artifacts, evidence, credentials, and common key formats
@@ -35,6 +37,6 @@
 - the reviewed container tag can change upstream; command evidence records the
   runtime, and a future release should support immutable image digests;
 - GPG pinentry and SVN authentication are external programs;
-- a release manager must still review legal/provenance findings and vote text;
+- a release manager must still review legal/provenance findings;
 - ignored files are not a security boundary, so secret scanning remains
   necessary.

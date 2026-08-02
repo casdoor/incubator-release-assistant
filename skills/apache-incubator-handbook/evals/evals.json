@@ -1,0 +1,23 @@
+{
+  "skill_name": "apache-incubator-handbook",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我们这个 podling 下个月该不该报月报，谁签字，报告写什么？不要联网。",
+      "expected_output": "The agent uses the reporting reference, explains first-three-month and quarterly scheduling, mentor sign-off, current-template caveat, and the report contents without browsing.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Apache 孵化项目的 dev vote 通过以后，general vote 怎么算 binding？",
+      "expected_output": "The agent explains the two-phase vote, PPMC versus IPMC binding votes, majority approval, 72-hour norm, and evidence link between phases from the offline release reference.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我们的源码包里有 EPL 依赖和一张第三方 logo，能不能直接发？",
+      "expected_output": "The agent distinguishes source versus convenience binary treatment, Category B and media attribution/provenance, asks for concrete bundling facts, and avoids making a legal conclusion.",
+      "files": []
+    }
+  ]
+}

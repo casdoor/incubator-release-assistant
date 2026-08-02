@@ -7,7 +7,8 @@ reviewed template in place.
 
 ## Current contract
 
-- `schemaVersion`: must be `2`.
+- `schemaVersion`: must be `3`. Version 3 removes the unused `votes` and
+  `distribution.releaseUrl` fields from the focused dist-dev RC workflow.
 - `project`: fixed Casbin identity, `casbin-go` adapter, and incubation status.
 - `source`: canonical Apache Casbin repository, full upstream commit, and safe
   archive prefix.
@@ -15,8 +16,7 @@ reviewed template in place.
 - `checks`: required legal/Go files and reviewed Apache RAT version.
 - `signing`: public Apache ID/fingerprint, official KEYS URL, project UID policy,
   and RSA minimum. These identifiers are public; private keys/passphrases are not.
-- `distribution`: fixed official Casbin incubator dev/release locations.
-- `votes`: fixed podling dev and Incubator general lists, minimum 72 hours.
+- `distribution`: fixed official Casbin incubator dist-dev staging location.
 - `runtime`: ignored state directory and reviewed Docker/Podman Go sandbox.
 
 ## Release-ready semantics
@@ -29,8 +29,7 @@ enforces cross-field and release-ready rules:
 - `LICENSE`, `NOTICE`, one disclaimer, `go.mod`, `go.sum`, and `.rat-excludes`
   cannot be removed;
 - path traversal, unknown fields, alternate repositories, alternate ASF URLs,
-  alternate vote lists, arbitrary commands, and unsupported adapters are
-  rejected.
+  arbitrary commands, and unsupported adapters are rejected.
 
 Configuration contains no shell command. `go test ./...` belongs to the trusted
 adapter implementation and runs only in the container.

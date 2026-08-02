@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	SupportedSchema  = "2"
+	SupportedSchema  = "3"
 	SupportedAdapter = "casbin-go"
 )
 
@@ -35,7 +35,6 @@ type Config struct {
 	Checks        Checks       `json:"checks"`
 	Signing       Signing      `json:"signing"`
 	Distribution  Distribution `json:"distribution"`
-	Votes         Votes        `json:"votes"`
 	Runtime       Runtime      `json:"runtime"`
 	Raw           []byte       `json:"-"`
 	Path          string       `json:"-"`
@@ -80,14 +79,7 @@ type Signing struct {
 }
 
 type Distribution struct {
-	DevURL     string `json:"devUrl"`
-	ReleaseURL string `json:"releaseUrl"`
-}
-
-type Votes struct {
-	DevList      string `json:"devList"`
-	GeneralList  string `json:"generalList"`
-	MinimumHours int    `json:"minimumHours"`
+	DevURL string `json:"devUrl"`
 }
 
 type Runtime struct {
@@ -137,7 +129,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	add(c.SchemaVersion != SupportedSchema, "schemaVersion must be 2")
+	add(c.SchemaVersion != SupportedSchema, "schemaVersion must be 3")
 	add(c.Project.ID != "casbin", "project.id must be casbin in the current release")
 	add(c.Project.DisplayName != "Apache Casbin", "project.displayName must be Apache Casbin")
 	add(c.Project.Adapter != SupportedAdapter, "project.adapter must be casbin-go; no other adapter is implemented yet")
@@ -176,17 +168,13 @@ func (c *Config) Validate() error {
 	add(c.Signing.MinimumRSABits < 4096, "signing.minimumRsaBits must be at least 4096 for the Casbin release policy")
 
 	add(c.Distribution.DevURL != "https://dist.apache.org/repos/dist/dev/incubator/casbin", "distribution.devUrl must be the official Casbin incubator dev URL")
-	add(c.Distribution.ReleaseURL != "https://dist.apache.org/repos/dist/release/incubator/casbin", "distribution.releaseUrl must be the official Casbin incubator release URL")
-	add(c.Votes.DevList != "dev@casbin.apache.org", "votes.devList must be dev@casbin.apache.org")
-	add(c.Votes.GeneralList != "general@incubator.apache.org", "votes.generalList must be general@incubator.apache.org")
-	add(c.Votes.MinimumHours < 72, "votes.minimumHours must be at least 72")
 
 	add(c.Runtime.StateDirectory != ".ira", "runtime.stateDirectory must be .ira")
 	add(c.Runtime.Container.Engine != "docker" && c.Runtime.Container.Engine != "podman", "runtime.container.engine must be docker or podman")
 	add(c.Runtime.Container.Image != "golang:1.24", "runtime.container.image must be the reviewed golang:1.24 image")
 	add(c.Runtime.Container.Network != "default" && c.Runtime.Container.Network != "none", "runtime.container.network must be default or none")
 
-	for _, rawURL := range []string{c.Source.Repository, c.Signing.KeysURL, c.Distribution.DevURL, c.Distribution.ReleaseURL} {
+	for _, rawURL := range []string{c.Source.Repository, c.Signing.KeysURL, c.Distribution.DevURL} {
 		add(!validHTTPSURL(rawURL), "URL must be an absolute HTTPS URL: "+rawURL)
 	}
 

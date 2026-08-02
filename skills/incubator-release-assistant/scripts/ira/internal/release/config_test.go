@@ -49,13 +49,12 @@ func TestRejectsUnsafeAndNonASFConfiguration(t *testing.T) {
 	cfg := validConfig(t)
 	cfg.Source.ArchivePrefix = "../../escape"
 	cfg.Distribution.DevURL = "https://example.com/upload"
-	cfg.Votes.GeneralList = "general@example.com"
 	cfg.Checks.RequiredFiles = []string{"LICENSE", "NOTICE", "go.mod", "go.sum", ".rat-excludes"}
 	err := cfg.Validate()
 	if err == nil {
 		t.Fatal("unsafe config was accepted")
 	}
-	for _, expected := range []string{"unsafe path", "official Casbin", "general@incubator", "DISCLAIMER"} {
+	for _, expected := range []string{"unsafe path", "official Casbin", "DISCLAIMER"} {
 		if !strings.Contains(err.Error(), expected) {
 			t.Errorf("missing %q in error: %v", expected, err)
 		}
@@ -98,18 +97,33 @@ func TestLoadAcceptsWindowsPowerShellUTF8BOM(t *testing.T) {
 func TestChecksumFormat(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "artifact.sha512")
 	digest := strings.Repeat("a", 128)
-	if err := os.WriteFile(path, []byte(digest+"  artifact.tar.gz\n"), 0o600); err != nil {
+	valid := digest + "  artifact.tar.gz\n"
+	if err := os.WriteFile(path, []byte(valid), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	got, err := readChecksum(path, "artifact.tar.gz")
 	if err != nil || got != digest {
 		t.Fatalf("checksum rejected: %s %v", got, err)
 	}
-	if err := os.WriteFile(path, []byte(digest+" *artifact.tar.gz\r\n"), 0o600); err != nil {
-		t.Fatal(err)
+
+	invalid := map[string]string{
+		"CRLF":             digest + "  artifact.tar.gz\r\n",
+		"missing final LF": digest + "  artifact.tar.gz",
+		"BOM":              "\ufeff" + valid,
+		"uppercase digest": strings.Repeat("A", 128) + "  artifact.tar.gz\n",
+		"path prefix":      digest + "  ./artifact.tar.gz\n",
+		"star format":      digest + " *artifact.tar.gz\n",
+		"extra line":       valid + "\n",
 	}
-	if _, err := readChecksum(path, "artifact.tar.gz"); err == nil {
-		t.Fatal("non-canonical checksum was accepted")
+	for name, content := range invalid {
+		t.Run(name, func(t *testing.T) {
+			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := readChecksum(path, "artifact.tar.gz"); err == nil {
+				t.Fatalf("non-canonical checksum was accepted: %q", content)
+			}
+		})
 	}
 }
 
@@ -189,15 +203,49 @@ func TestSignRejectsWrongDigestBeforeAccessingKey(t *testing.T) {
 	if err := os.WriteFile(artifact+".sha512", []byte(digest+"  "+cfg.ArtifactName()+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	checksumDigest, err := sha512File(artifact + ".sha512")
+	if err != nil {
+		t.Fatal(err)
+	}
 	state := NewState(cfg)
 	state.Prepared = true
 	state.ArtifactSHA512 = digest
+	state.ChecksumSHA512 = checksumDigest
 	if err := state.Save(runRoot); err != nil {
 		t.Fatal(err)
 	}
 	_, err = (Engine{}).Sign(cfg, "wrong-digest")
 	if err == nil || !strings.Contains(err.Error(), "confirmation") {
 		t.Fatalf("expected confirmation failure, got %v", err)
+	}
+}
+
+func TestExactFileDigestRejectsChangedBytes(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "candidate.asc")
+	if err := os.WriteFile(path, []byte("original signature bytes\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest, err := sha512File(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyExactFileDigest(path, digest, "signature"); err != nil {
+		t.Fatalf("original bytes rejected: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("different signature bytes\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyExactFileDigest(path, digest, "signature"); err == nil || !strings.Contains(err.Error(), "frozen candidate") {
+		t.Fatalf("changed bytes were accepted: %v", err)
+	}
+}
+
+func TestRejectsLegacyStateWithoutExactByteDigests(t *testing.T) {
+	cfg := validConfig(t)
+	state := NewState(cfg)
+	state.SchemaVersion = 1
+	if err := state.VerifyConfig(cfg); err == nil || !strings.Contains(err.Error(), "exact-byte resume") {
+		t.Fatalf("legacy state was accepted: %v", err)
 	}
 }
 

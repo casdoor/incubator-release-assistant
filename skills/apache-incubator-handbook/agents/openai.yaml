@@ -1,0 +1,4 @@
+interface:
+  display_name: "Apache Incubator Handbook"
+  short_description: "Offline Apache podling governance and policy guide"
+  default_prompt: "Use $apache-incubator-handbook to answer this Apache Incubator question from the bundled official-source summary."

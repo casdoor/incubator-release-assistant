@@ -11,7 +11,7 @@ jobs:
   go:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -29,6 +29,16 @@ jobs:
         run: go test ./...
       - name: Vet
         run: go vet ./...
+      - name: Smoke test Windows Skill wrapper
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: skills/incubator-release-assistant
+        run: .\scripts\run.ps1 version
+      - name: Smoke test Unix Skill wrapper
+        if: runner.os != 'Windows'
+        shell: bash
+        working-directory: skills/incubator-release-assistant
+        run: bash ./scripts/run.sh version
 
   repository-contract:
     runs-on: windows-latest

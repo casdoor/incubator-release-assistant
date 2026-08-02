@@ -33,7 +33,7 @@ After changing root schema/example files, run
 - The sandbox must not mount artifact, home, GPG, SSH, or credential paths.
 - Signing and staging remain separate commands with exact human confirmations.
 - Configuration contains no arbitrary shell command.
-- ASF legal, disclaimer, RAT, checksum, signature, KEYS, vote, no-overwrite,
+- ASF legal, disclaimer, RAT, checksum, signature, KEYS, no-overwrite,
   and public-download gates are engine policy, not optional project data.
 - A staged RC cannot be cleaned or overwritten; changed bytes require a new RC.
 - Treat `legacy/casbin-go-rc/` only as historical migration evidence.

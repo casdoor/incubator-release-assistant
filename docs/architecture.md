@@ -2,9 +2,10 @@
 
 ## Design rule
 
-Repository facts are reviewed data, language behavior is an adapter, and ASF
-release gates belong to the engine. Configuration may strengthen a gate but may
-not disable a legal, signature, checksum, vote, or provenance requirement.
+Repository facts are reviewed data, language behavior is an adapter, and the RC
+preparation/signing/staging gates belong to the engine. Configuration cannot
+disable the legal-file, RAT, signature, checksum, no-overwrite, or public-copy
+checks used by this workflow.
 
 ```text
 reviewed JSON
@@ -28,7 +29,6 @@ strict config + project policy
 - `LICENSE`, `NOTICE`, a disclaimer, `go.mod`, `go.sum`, and `.rat-excludes`;
 - Apache RAT 0.18;
 - `go test ./...` in a reviewed Go container;
-- Casbin dev and Incubator general vote destinations.
 
 This intentional narrowness makes the first implementation executable without
 pretending that unimplemented repositories are supported.
@@ -37,14 +37,16 @@ pretending that unimplemented repositories are supported.
 
 Each candidate has one ignored `.ira/runs/<project>-<version>-rc<n>/` directory:
 
-- `state.json` records config digest, exact commit, artifact digest, signer, and
-  completed stages;
+- `state.json` records config digest, exact commit, separate digests for the
+  archive/checksum/signature files, signer, and completed stages;
 - `artifacts/` contains only the source archive, signature, and checksum;
 - `work/` contains disposable repositories, extracts, keyrings, and SVN data;
 - `evidence/` contains complete local command output.
 
-A resumed step first verifies the config digest and artifact bytes. A staged
-candidate cannot be cleaned; changed bytes require a new RC number.
+A resumed step first verifies the config digest and every candidate-file
+digest. State schema 1 predates this protection and is rejected rather than
+silently resumed. A staged candidate cannot be cleaned; changed bytes in any
+of the three files require a new RC number.
 
 ## Trust boundaries
 
@@ -62,7 +64,7 @@ a compromised test from modifying the signed archive or reading release keys.
    `adapter-contract.md`.
 2. Add a reviewed example with no credentials.
 3. Add contract tests proving legal files, archive identity, sandbox behavior,
-   and ASF endpoints cannot be weakened.
+   and the dist-dev endpoint cannot be weakened.
 4. Add a CI matrix for the adapter's supported host platforms.
 5. Only then expose the adapter in the schema and Skill.
 
