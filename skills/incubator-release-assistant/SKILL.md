@@ -1,6 +1,6 @@
 ---
 name: incubator-release-assistant
-description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, including guiding a new release manager through missing config, signing-key, and official KEYS setup; then prepare, resume, sign, upload, and verify the RC with the bundled IRA engine. Use this skill whenever a user wants to set up, prepare, resume, sign, upload, or verify a Casbin RC, even when they have not configured a key yet. The current implementation supports only Apache Casbin Go.
+description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, including guiding a new release manager through missing config, signing-key, and official KEYS setup; then prepare, resume, sign, upload, and verify the RC with the bundled IRA engine. Use this skill whenever a user wants to set up, prepare, resume, sign, upload, or verify a Casbin RC, even when they have not configured a key yet. The engine supports only Apache Casbin Go; the skill also guides manual package releases to crates.io and Maven Central for Casbin adapter repositories that removed semantic-release.
 ---
 
 # Incubator Release Assistant
@@ -188,6 +188,28 @@ appropriate.
 Voting and post-vote release work are separate follow-up tasks. Help with them
 only when the user asks; they are not part of this Skill's normal RC run.
 
+## Publish adapter packages manually
+
+Package registries are a separate authority boundary from the RC workflow. The
+engine steps above never touch crates.io, Maven Central, or any other package
+registry. When the user asks to publish a new version of a Casbin adapter
+repository whose semantic-release was removed (for example
+`casbin-sqlx-adapter` or `casbin-jcasbin-jdbc-adapter`), follow the reference
+instead of the engine commands:
+
+1. read `references/manual-package-release.md` and confirm the target
+   repository and registry;
+2. check the release is ready: the tag and the version in `Cargo.toml` or
+   `pom.xml` match, upstream CI passed, and the working tree is clean;
+3. show the user the planned version, tag, and registry, and wait for explicit
+   authorization before publishing;
+4. run the publish commands from the reference with credentials read only
+   from environment variables or external secret storage; never write them
+   into configuration, JSON, or the repository;
+5. verify the published version on the registry and report its URL;
+6. do not guess or bump version numbers, and do not re-run a publish that
+   already succeeded.
+
 ## Boundaries
 
 - Current executable adapter: `casbin-go` only.
@@ -202,5 +224,12 @@ only when the user asks; they are not part of this Skill's normal RC run.
   human authorization.
 - Do not turn optional hardening ideas into blockers for the ordinary
   commit-to-RC workflow.
+- Package-registry credentials (`CARGO_REGISTRY_TOKEN`, OSSRH, GPG) must come
+  from environment variables or external secret storage; never from JSON
+  configuration or repository files.
+- Publishing to a public package registry is irreversible and always requires
+  explicit human authorization.
+- Never auto-create or auto-increment version numbers or tags; the version and
+  tag are decided by the user or community vote.
 - Consult `legacy/casbin-go-rc/` only as repository history; the bundled Go
   engine is the operational implementation.
