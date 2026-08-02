@@ -1,6 +1,6 @@
 ---
 name: incubator-release-assistant
-description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, sign it, upload it to ASF dist dev, and verify the public files with the bundled IRA engine. Use this skill whenever a user wants to prepare, resume, sign, upload, or verify a Casbin RC. The current implementation supports only Apache Casbin Go.
+description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, including guiding a new release manager through missing config, signing-key, and official KEYS setup; then prepare, resume, sign, upload, and verify the RC with the bundled IRA engine. Use this skill whenever a user wants to set up, prepare, resume, sign, upload, or verify a Casbin RC, even when they have not configured a key yet. The current implementation supports only Apache Casbin Go.
 ---
 
 # Incubator Release Assistant
@@ -30,26 +30,80 @@ preconditions.
    when needed, and rejects a path contained by the release repository
    or any larger Git worktree. `/abc` must therefore be a plain workspace. Only
    `sign` may resolve or access this directory; earlier and later stages do not.
-3. Read `references/configuration.md` when creating or changing config.
-4. Copy `assets/examples/casbin-go.json` to an ignored project-local path if no
-   active configuration exists. Never fill Apache ID, commit, or fingerprint by
-   guessing; obtain them from the user or verified public state.
-5. Use the bundled wrapper for the current platform. Both wrappers resolve a
+3. Run the read-only `doctor` command first. It returns JSON with a stable code,
+   resolved paths, one matching reference, and one next action. It does not
+   create a key, sign, or write to ASF.
+4. Read only the reference named by `doctor`. If the user already asked to set
+   up or release Casbin, create safe local directories and copy the non-secret
+   config template without adding another confirmation turn. Ask only for
+   public values that cannot be verified: Apache ID and the selected commit.
+5. Obtain the fingerprint by inspecting or generating the signing key; never
+   ask the user to invent or manually type an unverified fingerprint.
+6. Read `references/configuration.md` when changing fields beyond the normal
+   Apache ID, commit, key fingerprint, version, or RC inputs.
+7. Use the bundled wrapper for the current platform. Both wrappers resolve a
    relative config path from the caller's working directory and run the same Go
    engine.
 
 ```powershell
+& <skill-directory>\scripts\run.ps1 doctor -Config <config>
 & <skill-directory>\scripts\run.ps1 validate -Config <config>
 & <skill-directory>\scripts\run.ps1 plan -Config <config>
 ```
 
 ```bash
+bash <skill-directory>/scripts/run.sh doctor --config <config>
 bash <skill-directory>/scripts/run.sh validate --config <config>
 bash <skill-directory>/scripts/run.sh plan --config <config>
 ```
 
 Stop when the configuration does not validate. Tell the user exactly which
 field must be supplied or corrected, then continue from the same step.
+
+## Route incomplete setup through bundled knowledge
+
+Do not leave a new release manager with a terse engine error. Use the code and
+reference returned by `doctor`, then explain the next action in the user's
+language:
+
+- `IRA-WORKSPACE-001`, missing config, Apache ID, or source commit:
+  read `references/workspace-bootstrap.md`;
+- missing fingerprint, private key unavailable, wrong algorithm/size, missing
+  Apache UID, expired, revoked, or unable to sign: read
+  `references/signing-key-setup.md`;
+- `IRA-KEYS-001`, configured fingerprint absent from official Casbin `KEYS`:
+  read
+  `references/asf-keys-publication.md`;
+- `IRA-DEPENDENCY-001` or `IRA-PREFLIGHT-001`: read
+  `references/prerequisites.md`;
+- incomplete or resumable run state, changed bytes, or uncertainty about which
+  step to repeat: read `references/release-recovery.md`.
+
+Keep the first response short. Use this shape and stay under about 12 lines
+unless the user asks for the detailed commands or an error needs them:
+
+```text
+Current gate: <one sentence>
+Paths: <only the two to four paths relevant now>
+Next: <one action the Agent can perform>
+Need from you: <only unverifiable public input, a choice, or an approval>
+```
+
+Explain who creates a file and whether it is secret the first time that file is
+introduced. Do not repeat the full directory table on later turns. Expand into
+the reference's commands and examples only when the user needs that step.
+Require explicit approval only for private-key generation/import, signing, ASF
+writes, vote sending, and announcements; ordinary read-only checks and the
+non-secret local config copy are part of the requested setup.
+
+`secretkey/` is a GPG-managed directory, not a private-key file the user should
+copy into the repository. The public `*.asc` export may be reviewed and added to
+ASF `KEYS`; it is different from the private GPG home. Never guess an Apache ID
+or fingerprint, and never route an active user to `legacy/`.
+
+After each missing item is supplied, rerun `doctor`. Run `validate` and `plan`
+only after `doctor` reports `IRA-READY`. Do not restart or rebuild a frozen
+candidate merely because setup was incomplete.
 
 ## Prepare in the untrusted-code domain
 

@@ -1,0 +1,12 @@
+{
+  "apacheId": "example-asf-id",
+  "primaryUid": "Example User <example-asf-id@apache.org>",
+  "primaryFingerprint": "0123456789ABCDEF0123456789ABCDEF01234567",
+  "algorithm": "RSA",
+  "bits": 4096,
+  "canSign": true,
+  "expired": false,
+  "revoked": false,
+  "presentInOfficialKeys": false,
+  "officialKeysUrl": "https://dist.apache.org/repos/dist/release/incubator/casbin/KEYS"
+}

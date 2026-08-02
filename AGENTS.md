@@ -1,5 +1,10 @@
 # Repository guidance
 
+When the user asks to set up or perform an Apache Casbin release, read and
+follow `skills/incubator-release-assistant/SKILL.md` before acting. Run the
+read-only `doctor` command first and use its reported reference and next action.
+The remaining guidance in this file also applies to repository maintenance.
+
 ## Purpose and current scope
 
 Maintain a safe, configuration-driven Apache Incubator release engine and
@@ -11,6 +16,7 @@ contract tests exist.
 
 ```powershell
 # Human entry point from the parent workspace (for example C:\abc)
+.\Incubator-release-assistant\ira.ps1 doctor
 .\Incubator-release-assistant\ira.ps1 validate `
   -Config .\Incubator-release-assistant\config\local\casbin.local.json
 .\Incubator-release-assistant\ira.ps1 plan `
@@ -51,7 +57,8 @@ mirrors.
 Never commit active local configuration, `.ira/`, artifacts, evidence, private
 keys, passwords, tokens, cookies, credential stores, or private-list content.
 Public Apache IDs and signing fingerprints may appear only where operationally
-necessary. Keep the gitleaks workflow enabled.
+necessary. Run an available secret scan before publishing changes that touch
+release configuration, key guidance, or evidence handling.
 
 When adding an adapter, follow `docs/adapter-contract.md` and preserve the shared
 trust boundaries rather than adding project-name branches to common execution.

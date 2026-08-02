@@ -22,9 +22,39 @@ added without weakening the shared release gates.
 > authority. Signing, ASF writes, votes, and announcements are never fully
 > automated without human approval.
 
+## 60-second Agent start
+
+Clone into a plain parent workspace, start the Agent from that parent, and give
+it one explicit instruction. No global Skill installation is required for this
+clone-and-use path.
+
+```text
+Read and follow ./Incubator-release-assistant/skills/incubator-release-assistant/SKILL.md.
+Run its read-only doctor first, resolve one reported gate at a time, and help me
+prepare the Apache Casbin Go RC. Do not generate a private key, sign, or write to
+ASF without asking me at that boundary.
+```
+
+The first command the Agent runs is one of:
+
+```powershell
+.\Incubator-release-assistant\ira.ps1 doctor
+```
+
+```bash
+./Incubator-release-assistant/ira.sh doctor
+```
+
+`doctor` does not create a key, sign, upload, or modify ASF state. It returns a
+small JSON report with the current gate, resolved paths, matching knowledge
+page, and one next action. Re-run it after each setup item until it reports
+`IRA-READY`.
+
 ## What is implemented
 
 - strict, unknown-field-rejecting release-ready configuration validation;
+- a read-only `doctor` that reports one setup gate, real paths, knowledge page,
+  and next action as stable JSON;
 - canonical Casbin upstream, ASF URL, legal-file, disclaimer, and naming
   invariants that configuration cannot turn off;
 - exact-commit `git archive` packaging with one top-level directory;
@@ -34,6 +64,7 @@ added without weakening the shared release gates.
 - separate `prepare`, `sign`, and `stage` trust boundaries;
 - an external signing home under the parent workspace, never inside Git;
 - signing-key and official `KEYS` verification in an isolated public keyring;
+- knowledge-guided setup for missing config, signing keys, and official `KEYS`;
 - no-overwrite ASF dist dev staging and public byte-for-byte re-verification;
 - resumable state under ignored `.ira/runs/`;
 - a self-contained Skill containing the Go engine, schema, and Casbin template.
@@ -49,6 +80,19 @@ The release Skill includes `scripts/run.ps1` for Windows PowerShell 5.1+ and
 
 The container engine is a security boundary. IRA intentionally has no
 "run project tests directly on the signing host" fallback.
+
+## Activate the release Skill
+
+The operational instructions live in
+[`skills/incubator-release-assistant/SKILL.md`](skills/incubator-release-assistant/SKILL.md).
+For repeated use, install that Skill directory using the Agent client's Skill
+mechanism. For immediate use after cloning, copy the exact prompt from the
+60-second start above. Cloning a repository does not guarantee that every Agent
+client automatically discovers a nested Skill, so do not omit both activation
+paths.
+
+The Skill uses progressive disclosure. It reads detailed setup knowledge only
+when config, signing-key, official-KEYS, or recovery help is needed.
 
 ## Expected Claude Code workspace
 
@@ -66,7 +110,7 @@ Clone with the intended directory name and prepare the external key directory:
 
 ```bash
 cd /abc
-git clone https://github.com/EmryZhang/incubator-release-assistant.git Incubator-release-assistant
+git clone https://github.com/casdoor/incubator-release-assistant.git Incubator-release-assistant
 mkdir -p secretkey
 chmod 700 secretkey
 ```
@@ -82,9 +126,45 @@ Git metadata, preventing accidental capture by a larger wrapper repository.
 The ASF `KEYS` file is public verification material. IRA downloads a disposable
 copy under ignored run state; it is not the release manager's private keyring.
 
+If setup is incomplete, the release Skill does not stop at the raw engine
+error. It loads the matching bundled reference and explains:
+
+- the resolved config, external GPG home, public-key export, and evidence paths;
+- which files are user-provided, Agent-generated, GPG-managed, or official ASF
+  state;
+- the exact safe next action;
+- the separate confirmation required before key generation or official KEYS
+  publication.
+
+The normal layout may also include public, non-secret key material:
+
+```text
+/abc/
+├── Incubator-release-assistant/
+│   ├── config/local/casbin.local.json   ignored non-secret config
+│   └── .ira/runs/                       generated state and evidence
+├── secretkey/                           GPG-managed private home
+└── public-key/
+    ├── apache-casbin-release-key.asc    generated public export
+    └── key-metadata.json                generated public metadata
+```
+
+Do not manually create individual files inside `secretkey/`; GPG owns that
+directory. See the Skill references for Windows, Linux, and macOS examples.
+
 ## Human workflow
 
-From `/abc`, copy and fill the non-secret template:
+From `/abc`, inspect the current setup first:
+
+```bash
+./Incubator-release-assistant/ira.sh doctor
+```
+
+```powershell
+.\Incubator-release-assistant\ira.ps1 doctor
+```
+
+If it reports `IRA-CONFIG-001`, copy and fill the non-secret template:
 
 ```bash
 mkdir -p ./Incubator-release-assistant/config/local
@@ -102,10 +182,14 @@ notepad .\Incubator-release-assistant\config\local\casbin.local.json
 ```
 
 Only the commit, version/RC-derived names, Apache ID, signer fingerprint, and
-reviewed runtime choice normally need attention. Passwords, private keys,
-tokens, and cookies never belong in JSON.
+reviewed runtime choice normally need attention. Obtain the fingerprint from
+the selected GPG key rather than inventing it. Passwords, private keys, tokens,
+and cookies never belong in JSON.
 
-Then run:
+Re-run `doctor` after each item. It first asks for the public Apache ID and
+commit, then routes a missing fingerprint to the signing-key guide, and finally
+checks that the fingerprint is in official `KEYS`. After it reports
+`IRA-READY`, run:
 
 ```bash
 ./Incubator-release-assistant/ira.sh validate \
@@ -116,9 +200,10 @@ Then run:
   --config ./Incubator-release-assistant/config/local/casbin.local.json
 ```
 
-During the later `sign` command, the Bash wrapper defaults to
+During `doctor` and the later `sign` command, the Bash wrapper defaults to
 `/abc/secretkey` because the caller is `/abc`. Override it only with another
-absolute external directory by passing `--secret-dir`. Validation, planning,
+absolute external directory by passing `--secret-dir`. `doctor` only inspects
+public key metadata and availability; it never signs. Validation, planning,
 preparation, staging, and public verification do not access the private key
 directory.
 
@@ -223,6 +308,7 @@ skills/apache-incubator-handbook/
 skills/incubator-release-assistant/
   SKILL.md                      Agent workflow
   assets/                       Self-contained schema and template mirrors
+  references/                   Config, workspace, key, KEYS, and recovery guidance
   scripts/run.ps1               Windows Skill entry point
   scripts/run.sh                Linux/macOS Skill entry point
   scripts/ira/                  Go CLI, engine, and tests
