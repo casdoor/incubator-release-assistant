@@ -4,13 +4,15 @@ Read this reference when the engine or wrapper stops on incomplete setup or
 resumable state. Match the observed condition, load the referenced knowledge,
 and give the user one concrete next action.
 
-| Observed condition | Knowledge to read | Next action |
+| Code or condition | Knowledge to read | Next action |
 | --- | --- | --- |
-| config missing, Apache ID placeholder, fingerprint placeholder | `workspace-bootstrap.md` | create/fill non-secret config |
-| private key unavailable or not found | `signing-key-setup.md` | inspect existing key or generate one |
+| `IRA-CONFIG-001` / config missing | `workspace-bootstrap.md` | copy non-secret config template |
+| `IRA-CONFIG-003` / Apache ID or commit missing | `workspace-bootstrap.md` | collect only the missing public inputs |
+| `IRA-KEY-001` / fingerprint or private key missing | `signing-key-setup.md` | inspect an existing key or approve generation |
 | key is not RSA 4096, lacks Apache UID, is expired/revoked, or cannot sign | `signing-key-setup.md` | select or create a compliant key |
-| fingerprint absent from official KEYS | `asf-keys-publication.md` | prepare public-key publication |
-| secret directory is inside a Git worktree | `workspace-bootstrap.md` | move to a plain parent workspace |
+| `IRA-KEYS-001` / fingerprint absent from official KEYS | `asf-keys-publication.md` | prepare public-key publication |
+| `IRA-WORKSPACE-001` / secret directory is inside Git | `workspace-bootstrap.md` | move to a plain external directory |
+| `IRA-DEPENDENCY-001` or `IRA-PREFLIGHT-001` | `prerequisites.md` | install the one missing command or retry the public check |
 | incomplete prepare state exists | this page | inspect evidence, then approve `--clean` only if unstaged data is disposable |
 | prepared/signed/staged state exists | this page | re-run the same command and let IRA revalidate frozen bytes |
 | frozen candidate bytes differ | this page | stop and use a new RC number |
@@ -21,23 +23,14 @@ placeholders when the filesystem already supplies the answer.
 ## Response shape
 
 ```text
-Current gate
-<what failed and why it matters>
-
-Expected paths
-<config path>
-<secret directory if relevant>
-<public export or evidence path if relevant>
-
-Files
-<who creates each file and whether it is secret>
-
-Next action
-<one safe action the Agent can perform>
-
-Approval
-<the exact mutation that still needs user approval>
+Current gate: <what failed and why it matters>
+Paths: <only paths relevant to this gate>
+Next: <one safe action the Agent can perform>
+Need from you: <missing public input, choice, or approval; omit if none>
 ```
+
+Keep this first response under about 12 lines. Explain file ownership when the
+file first appears, and show longer commands only when executing that step.
 
 Never route active users to `legacy/casbin-go-rc/`. Those files are migration
 history and do not match the current trust boundaries or resumable engine.

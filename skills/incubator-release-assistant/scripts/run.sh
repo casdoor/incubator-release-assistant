@@ -4,8 +4,10 @@ set -euo pipefail
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 engine_dir="$script_dir/ira"
 caller_dir=$(pwd)
+repository_root=$(CDPATH= cd -- "$script_dir/../../.." && pwd -P)
 args=()
 secret_dir=""
+config_supplied=false
 
 while (($#)); do
   if [[ "$1" == "--secret-dir" ]]; then
@@ -20,6 +22,7 @@ while (($#)); do
       secret_dir="$caller_dir/$1"
     fi
   elif [[ "$1" == "--config" ]]; then
+    config_supplied=true
     args+=("$1")
     shift
     if (($# == 0)); then
@@ -40,12 +43,16 @@ done
 cache_root=${TMPDIR:-/tmp}
 export GOCACHE="$cache_root/incubator-release-assistant-go-build-cache"
 export GOTELEMETRY=off
+export IRA_REPOSITORY_ROOT="$repository_root"
 
-if [[ "${args[0]:-}" == "sign" ]]; then
+if [[ "${args[0]:-}" == "doctor" && "$config_supplied" == false ]]; then
+  args+=("--config" "$repository_root/config/local/casbin.local.json")
+fi
+
+if [[ "${args[0]:-}" == "sign" || "${args[0]:-}" == "doctor" ]]; then
   if [[ -z "$secret_dir" ]]; then
     secret_dir="$caller_dir/secretkey"
   fi
-  repository_root=$(CDPATH= cd -- "$script_dir/../../.." && pwd -P)
   secret_parent=$(dirname -- "$secret_dir")
   secret_name=$(basename -- "$secret_dir")
   if [[ ! -d "$secret_parent" ]]; then
@@ -72,8 +79,14 @@ if [[ "${args[0]:-}" == "sign" ]]; then
     fi
     git_probe="$git_parent"
   done
-  mkdir -p -- "$secret_dir"
-  secret_dir=$(CDPATH= cd -- "$secret_dir" && pwd -P)
+  if [[ "${args[0]:-}" == "sign" ]]; then
+    mkdir -p -- "$secret_dir"
+  fi
+  if [[ -d "$secret_dir" ]]; then
+    secret_dir=$(CDPATH= cd -- "$secret_dir" && pwd -P)
+  else
+    secret_dir="$secret_parent/$secret_name"
+  fi
   case "$secret_dir/" in
     "$repository_root/"*)
       echo "resolved secret directory must be outside the repository" >&2
@@ -92,7 +105,9 @@ if [[ "${args[0]:-}" == "sign" ]]; then
     fi
     git_probe="$git_parent"
   done
-  chmod 700 "$secret_dir"
+  if [[ "${args[0]:-}" == "sign" ]]; then
+    chmod 700 "$secret_dir"
+  fi
   export IRA_SECRET_DIR="$secret_dir"
   export GNUPGHOME="$secret_dir"
 fi

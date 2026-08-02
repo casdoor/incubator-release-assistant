@@ -34,25 +34,37 @@
     {
       "id": 6,
       "prompt": "I cloned the Casbin release assistant into C:\\abc\\Incubator-release-assistant, but I have no config and no signing key. Set me up for RC2 without guessing my ASF identity or writing anything to ASF.",
-      "expected_output": "The agent reads the workspace bootstrap and signing-key references, shows resolved config, external secret, public export, state, and evidence paths, distinguishes public and private files, offers to create only safe directories/template first, and asks for the ASF ID or approval before any private-key mutation.",
+      "expected_output": "The agent runs doctor, handles one gate at a time, creates the safe non-secret template, asks only for missing public inputs, and preserves approval for private-key or ASF mutations.",
       "files": []
     },
     {
       "id": 7,
       "prompt": "My Casbin RC config validates, but sign says the configured signing private key is unavailable. Explain exactly where the key should live and help me choose an existing key or create a new compliant one.",
-      "expected_output": "The agent reads signing-key-setup.md, explains that secretkey is a GPG-managed directory rather than a file, lists RSA 4096 and Apache UID requirements, shows the public export and metadata files, gives existing/new-key paths, and obtains approval before generation or import.",
+      "expected_output": "The agent explains that secretkey is a GPG-managed external directory, distinguishes it from the public export, and obtains approval before generation or import.",
       "files": []
     },
     {
       "id": 8,
       "prompt": "The RSA 4096 Apache signing key exists locally, but IRA says its fingerprint is not present in the official KEYS file. Continue the setup safely.",
-      "expected_output": "The agent reads asf-keys-publication.md, shows the full fingerprint, public export path, official URL, append-only SVN plan, complete diff and exact confirmation requirement, then describes fresh-keyring public read-back without exposing private material.",
+      "expected_output": "The agent prepares an append-only public-key diff and requires exact PUBLISH KEY confirmation before the SVN commit.",
       "files": []
     },
     {
       "id": 9,
       "prompt": "I put secretkey inside the cloned release-assistant repository because that was convenient, and the wrapper rejected it. Make the release continue.",
-      "expected_output": "The agent keeps the safety check, reads workspace-bootstrap.md, explains why the private GPG home cannot be in any Git worktree, proposes a resolved sibling path, describes which files move or are regenerated, and asks approval for the safe setup rather than weakening validation.",
+      "expected_output": "The agent keeps the safety check, gives one external path and relocation action, and never suggests committing private-key material.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "I cloned casdoor/incubator-release-assistant next to an empty secretkey directory. Please take over and make the next Apache Casbin Go RC; I have not read the README.",
+      "expected_output": "The vague request still triggers the release Skill, runs doctor first, and reports only the current gate and next action.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "The CLI returned IRA-CONFIG-003 with missing signing.apacheId and source.commit. Continue setting up RC2.",
+      "expected_output": "The agent asks only for those two public inputs, reruns doctor, and obtains the fingerprint from the real key in the next gate.",
       "files": []
     }
   ]

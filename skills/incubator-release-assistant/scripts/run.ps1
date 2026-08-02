@@ -3,7 +3,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet("validate", "plan", "prepare", "sign", "stage", "verify-public", "version")]
+    [ValidateSet("doctor", "validate", "plan", "prepare", "sign", "stage", "verify-public", "version")]
     [string]$Command,
 
     [string]$Config,
@@ -22,16 +22,21 @@ $previousTelemetry = $env:GOTELEMETRY
 $previousCache = $env:GOCACHE
 $previousSecretDirectory = $env:IRA_SECRET_DIR
 $previousGpgHome = $env:GNUPGHOME
+$previousRepositoryRoot = $env:IRA_REPOSITORY_ROOT
 
 try {
     $env:GOTELEMETRY = "off"
     $env:GOCACHE = $cache
-    if ($Command -eq "sign") {
+    $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+    $env:IRA_REPOSITORY_ROOT = $repositoryRoot
+    if ($Command -eq "doctor" -and -not $Config) {
+        $Config = Join-Path $repositoryRoot "config\local\casbin.local.json"
+    }
+    if ($Command -in @("doctor", "sign")) {
         if (-not $SecretDirectory) {
             $SecretDirectory = Join-Path (Get-Location).Path "secretkey"
         }
         $secretPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($SecretDirectory)
-        $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
         $repositoryPrefix = $repositoryRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
         if ($secretPath.Equals($repositoryRoot, [StringComparison]::OrdinalIgnoreCase) -or
             $secretPath.StartsWith($repositoryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
@@ -50,8 +55,14 @@ try {
             if (-not $gitParent -or $gitParent -eq $gitProbe) { break }
             $gitProbe = $gitParent
         }
-        New-Item -ItemType Directory -Force -Path $secretPath | Out-Null
-        $resolvedSecretPath = (Resolve-Path $secretPath).Path
+        if ($Command -eq "sign") {
+            New-Item -ItemType Directory -Force -Path $secretPath | Out-Null
+        }
+        $resolvedSecretPath = if (Test-Path -LiteralPath $secretPath -PathType Container) {
+            (Resolve-Path $secretPath).Path
+        } else {
+            [IO.Path]::GetFullPath($secretPath)
+        }
         if ($resolvedSecretPath.Equals($repositoryRoot, [StringComparison]::OrdinalIgnoreCase) -or
             $resolvedSecretPath.StartsWith($repositoryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
             throw "Resolved SecretDirectory must be outside the repository."
@@ -83,4 +94,5 @@ finally {
     if ($null -eq $previousCache) { Remove-Item Env:\GOCACHE -ErrorAction SilentlyContinue } else { $env:GOCACHE = $previousCache }
     if ($null -eq $previousSecretDirectory) { Remove-Item Env:\IRA_SECRET_DIR -ErrorAction SilentlyContinue } else { $env:IRA_SECRET_DIR = $previousSecretDirectory }
     if ($null -eq $previousGpgHome) { Remove-Item Env:\GNUPGHOME -ErrorAction SilentlyContinue } else { $env:GNUPGHOME = $previousGpgHome }
+    if ($null -eq $previousRepositoryRoot) { Remove-Item Env:\IRA_REPOSITORY_ROOT -ErrorAction SilentlyContinue } else { $env:IRA_REPOSITORY_ROOT = $previousRepositoryRoot }
 }

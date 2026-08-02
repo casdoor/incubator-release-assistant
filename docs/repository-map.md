@@ -9,6 +9,7 @@
 ira.ps1 / ira.sh
   -> skills/incubator-release-assistant/scripts/run.ps1 / run.sh
      -> scripts/ira/cmd/ira/main.go
+     -> internal/release/doctor.go
      -> internal/release/config.go
      -> internal/release/engine.go
      -> internal/release/state.go
@@ -100,6 +101,8 @@ Skill 后不依赖仓库根目录源码。
   home、RSA 4096、Apache UID、公钥导出和用户提示。
 - `references/asf-keys-publication.md`: 本地密钥合规但官方 `KEYS` 缺失时，
   说明公开导出、SVN diff、确认、提交和公网回读。
+- `references/prerequisites.md`: `doctor` 发现工具或公网检查缺失时，只说明
+  当前缺项、用途和复验命令。
 - `references/release-recovery.md`: 将配置、密钥、KEYS 和续跑错误路由到唯一
   下一步。
 - `assets/release.schema.json`: `config/release.schema.json` 的 Skill 内镜像。
@@ -114,7 +117,10 @@ Skill 后不依赖仓库根目录源码。
 
 - `scripts/ira/go.mod`: Go 模块身份和最低 Go 版本；当前无第三方 Go 依赖。
 - `scripts/ira/cmd/ira/main.go`: CLI 命令分发，提供 `validate`、`plan`、
-  `prepare`、`sign`、`stage`、`verify-public` 和 `version`。
+  `doctor`、`prepare`、`sign`、`stage`、`verify-public` 和 `version`，失败时
+  输出稳定错误码、知识页和下一步。
+- `scripts/ira/internal/release/doctor.go`: 只读检查工作区、配置、依赖、本地
+  签名密钥和官方 `KEYS`，输出真实路径和唯一下一步。
 - `scripts/ira/internal/release/config.go`: 读取、严格校验配置，并派生运行 ID、
   产物名和 `.ira/runs/...` 状态目录，同时验证外置密钥目录不在仓库内。
 - `scripts/ira/internal/release/engine.go`: 核心流程；克隆 commit、打包、解压、
@@ -125,6 +131,8 @@ Skill 后不依赖仓库根目录源码。
   SVN 等外部命令，记录日志，并严格解析 LF-only SHA-512 文件。
 - `scripts/ira/internal/release/config_test.go`: 当前测试集合，覆盖配置约束、
   CRLF/BOM 校验、状态保存、容器挂载、错误确认和文件字节变化等。
+- `scripts/ira/internal/release/doctor_test.go`: 覆盖缺配置、公开输入、缺指纹、
+  不安全工作区和错误码路由。
 
 ## `legacy/casbin-go-rc/`
 

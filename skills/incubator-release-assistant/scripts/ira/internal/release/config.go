@@ -20,6 +20,7 @@ const (
 	SupportedSchema            = "3"
 	SupportedAdapter           = "casbin-go"
 	SecretDirectoryEnvironment = "IRA_SECRET_DIR"
+	RepositoryRootEnvironment  = "IRA_REPOSITORY_ROOT"
 )
 
 var (
@@ -95,6 +96,17 @@ type Container struct {
 }
 
 func LoadConfig(path string) (*Config, error) {
+	cfg, err := loadConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+func loadConfig(path string) (*Config, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf("resolve config path: %w", err)
@@ -116,9 +128,6 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	cfg.Raw = raw
 	cfg.Path = abs
-	if err := cfg.Validate(); err != nil {
-		return nil, err
-	}
 	return &cfg, nil
 }
 
@@ -250,6 +259,11 @@ func (c *Config) SigningGPGHome() (string, error) {
 }
 
 func pathInsideOrEqual(path, root string) (bool, error) {
+	pathVolume := filepath.VolumeName(filepath.Clean(path))
+	rootVolume := filepath.VolumeName(filepath.Clean(root))
+	if pathVolume != "" && rootVolume != "" && !strings.EqualFold(pathVolume, rootVolume) {
+		return false, nil
+	}
 	relative, err := filepath.Rel(root, path)
 	if err != nil {
 		return false, fmt.Errorf("compare repository and secret paths: %w", err)

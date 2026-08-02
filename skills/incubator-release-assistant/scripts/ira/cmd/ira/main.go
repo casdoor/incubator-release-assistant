@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"github.com/EmryZhang/incubator-release-assistant/skills/incubator-release-assistant/scripts/ira/internal/release"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -29,6 +30,16 @@ func main() {
 	if err := set.Parse(os.Args[2:]); err != nil {
 		fail(err)
 	}
+	engine := release.Engine{Runner: release.Runner{Out: os.Stdout}}
+	if command == "doctor" {
+		report := engine.Doctor(*configPath)
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(report); err != nil {
+			fail(err)
+		}
+		return
+	}
 	if *configPath == "" {
 		fail(fmt.Errorf("--config is required"))
 	}
@@ -36,8 +47,6 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	engine := release.Engine{Runner: release.Runner{Out: os.Stdout}}
-
 	switch command {
 	case "validate":
 		fmt.Printf("Release-ready configuration is valid.\nConfig: %s\nRun: %s\nCommit: %s\n", cfg.Path, cfg.RunID(), cfg.Source.Commit)
@@ -65,6 +74,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, `IRA - Apache Incubator release assistant
 
 Usage:
+  %s doctor        [--config <file>]
   %s validate      --config <file>
   %s plan          --config <file>
   %s prepare       --config <file> [--clean]
@@ -74,10 +84,11 @@ Usage:
   %s version
 
 The current build intentionally supports only the Apache Casbin Go adapter.
-`, name, name, name, name, name, name, name)
+`, name, name, name, name, name, name, name, name)
 }
 
 func fail(err error) {
-	fmt.Fprintln(os.Stderr, "FAILED:", err)
+	guidance := release.GuidanceForError(err)
+	fmt.Fprintf(os.Stderr, "FAILED [%s]: %v\nGuidance: %s\nNext: %s\n", guidance.Code, err, guidance.Reference, guidance.NextAction)
 	os.Exit(1)
 }

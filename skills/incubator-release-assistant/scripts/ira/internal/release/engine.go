@@ -482,7 +482,14 @@ func (e Engine) VerifyPublic(cfg *Config) error {
 }
 
 func (e Engine) verifySigningKey(cfg *Config, runRoot, gpgHome string) error {
-	out, err := e.Runner.Output("", "gpg", "--homedir", gpgHome, "--batch", "--with-colons", "--list-secret-keys", strings.ToUpper(cfg.Signing.Fingerprint))
+	if err := e.inspectSigningKey(cfg, gpgHome); err != nil {
+		return err
+	}
+	return e.ensureOfficialKeyring(cfg, runRoot)
+}
+
+func (e Engine) inspectSigningKey(cfg *Config, gpgHome string) error {
+	out, err := e.Runner.Output("", "gpg", "--homedir", gpgHome, "--batch", "--no-auto-check-trustdb", "--with-colons", "--list-secret-keys", strings.ToUpper(cfg.Signing.Fingerprint))
 	if err != nil {
 		return fmt.Errorf("configured signing private key is unavailable: %w", err)
 	}
@@ -514,7 +521,7 @@ func (e Engine) verifySigningKey(cfg *Config, runRoot, gpgHome string) error {
 	if cfg.Signing.RequireApacheUID && !foundApacheUID {
 		return fmt.Errorf("project policy requires an apache.org UID on the signing key")
 	}
-	return e.ensureOfficialKeyring(cfg, runRoot)
+	return nil
 }
 
 func (e Engine) ensureOfficialKeyring(cfg *Config, runRoot string) error {

@@ -1,7 +1,8 @@
 # Workspace bootstrap
 
-Read this reference when the release configuration is missing, still contains
-placeholders, or the signing directory is inside a Git worktree.
+Read this reference when `doctor` reports an unsafe workspace, a missing
+configuration, or missing public inputs such as Apache ID or source commit.
+When only the fingerprint is missing, read `signing-key-setup.md` instead.
 
 ## Supported layout
 
@@ -76,8 +77,9 @@ that normally need attention are:
 }
 ```
 
-Do not guess the Apache ID, commit, or fingerprint. Ask for public identity
-values that cannot be verified. Never add a password, passphrase, private key,
+Do not guess the Apache ID or commit. Ask for public values that cannot be
+verified. Obtain the fingerprint from the selected key in the next setup gate;
+do not ask the user to invent it. Never add a password, passphrase, private key,
 token, cookie, or SVN credential to JSON.
 
 ## Agent prompt
@@ -97,13 +99,15 @@ Public files I may generate later:
 <absolute public-key export path>
 <absolute public metadata path>
 
-I can create the safe directories and copy the non-secret Casbin template.
-I still need your ASF ID; I will verify the source commit and will obtain the
-fingerprint from the selected key rather than guessing it.
+I will create the safe local config directory and copy the non-secret Casbin
+template as part of this setup. I still need your ASF ID and selected source
+commit. I will obtain the fingerprint from the signing key rather than asking
+you to invent it.
 
-May I prepare the workspace and config template?
+Need from you: <ASF ID and source commit, if they cannot be verified>
 ```
 
-After approval, create only the safe directories and config copy. Do not
-generate/import a private key as part of workspace bootstrap. Re-run
-`validate`, then route any signing-key problem to `signing-key-setup.md`.
+Create only the safe directories and config copy. Do not generate or import a
+private key as part of workspace bootstrap. Re-run `doctor`; after the public
+inputs are complete it will route the missing fingerprint to
+`signing-key-setup.md`. Run `validate` only after `doctor` reports ready.

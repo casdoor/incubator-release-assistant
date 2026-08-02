@@ -6,7 +6,10 @@
     "releaseConfig": "C:\\abc\\Incubator-release-assistant\\config\\local\\casbin.local.json",
     "secretDirectory": "C:\\abc\\secretkey",
     "publicKeyExport": "C:\\abc\\public-key\\apache-casbin-release-key.asc",
-    "keyMetadata": "C:\\abc\\public-key\\key-metadata.json"
+    "keyMetadata": "C:\\abc\\public-key\\key-metadata.json",
+    "evidenceRoot": "C:\\abc\\Incubator-release-assistant\\.ira\\runs"
   },
-  "nextAction": "generate_or_import_signing_key"
+  "missing": ["compliant signing private key"],
+  "reference": "references/signing-key-setup.md",
+  "nextAction": "inspect_or_create_signing_key"
 }

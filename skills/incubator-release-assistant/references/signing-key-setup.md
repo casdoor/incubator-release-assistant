@@ -127,5 +127,6 @@ GPG will ask you for any passphrase directly. I will not receive or store it.
 May I prepare the selected path?
 ```
 
-Once the key is compliant, check the official KEYS file. If the fingerprint is
-absent, continue with `asf-keys-publication.md` rather than attempting to sign.
+Once the key is compliant, write only its public fingerprint to the local
+config and re-run `doctor`. If it returns `IRA-KEYS-001`, continue with
+`asf-keys-publication.md` rather than attempting to sign.

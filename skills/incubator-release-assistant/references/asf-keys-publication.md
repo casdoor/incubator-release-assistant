@@ -91,5 +91,6 @@ fresh temporary keyring and verify the fingerprint and Apache UID.
 May I prepare the KEYS update for review?
 ```
 
-When public read-back succeeds, update public metadata and continue from the
-same release config. Do not regenerate the key or candidate.
+When public read-back succeeds, update public metadata, re-run `doctor`, and
+continue from the same release config when it reports `IRA-READY`. Do not
+regenerate the key or candidate.
