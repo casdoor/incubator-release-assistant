@@ -1,4 +1,4 @@
 interface:
   display_name: "Incubator Release Assistant"
-  short_description: "Config-driven Apache Incubator releases"
-  default_prompt: "Use $incubator-release-assistant to prepare and verify a source release candidate from a project config."
+  short_description: "Safe Apache Casbin Go Incubator releases"
+  default_prompt: "Use $incubator-release-assistant and its bundled IRA engine to validate, prepare, resume, sign, or stage an Apache Casbin Go source release candidate."

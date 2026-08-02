@@ -1,0 +1,23 @@
+{
+  "skill_name": "incubator-release-assistant",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare Apache Casbin 3.11.0-incubating RC2 from a reviewed full commit, but do not sign or upload anything yet.",
+      "expected_output": "The agent validates and plans with the bundled engine, runs prepare only, keeps Go tests in the container, and reports the artifact SHA-512 and evidence path without accessing signing or ASF credentials.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The prepare step already succeeded yesterday. Sign the existing Casbin RC without rebuilding it.",
+      "expected_output": "The agent reloads state, revalidates the exact artifact and checksum, shows the digest, obtains explicit signing authorization, and calls the separate sign command without executing project code.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Use this Skill to release a Java Incubator repository by putting mvn test in the JSON config.",
+      "expected_output": "The agent refuses because only casbin-go is implemented and arbitrary commands are not accepted, then explains that a tested Java adapter must be added first.",
+      "files": []
+    }
+  ]
+}

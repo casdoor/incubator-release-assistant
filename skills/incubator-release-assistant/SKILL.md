@@ -1,70 +1,100 @@
 ---
 name: incubator-release-assistant
-description: Prepare, verify, stage, and document configuration-driven Apache Incubator source release candidates. Use when Codex must work on RC packaging, clean source archives, legal files, Apache RAT, build and test gates, LF-only SHA-512, GPG and KEYS verification, ASF dist dev staging, dev or general vote handoff, or repeatable release automation across repositories and languages.
+description: Prepare, verify, sign, stage, resume, and document Apache Casbin Go Incubator source release candidates with the bundled IRA engine. Use this skill whenever a user asks about making or validating a Casbin RC, source archive, RAT/legal checks, SHA-512, GPG/KEYS, ASF dist dev staging, or dev/general release votes. The current implementation supports only Apache Casbin Go; do not imply that other repositories or languages are executable yet.
 ---
 
 # Incubator Release Assistant
 
-Use a reviewed JSON configuration as the source of repository-specific facts.
-Keep shared ASF release gates independent of project name and language.
+Use the bundled engine instead of reconstructing release commands manually. It
+encodes exact-byte state, sandboxed Go tests, signing and staging confirmations,
+official endpoint checks, and public re-verification.
 
-## Start
+## Establish the run
 
-1. Resolve the workspace and configuration path.
-2. Run `scripts/validate-release-config.ps1 -Config <path>`.
-3. Read `references/configuration.md` when authoring or changing configuration.
-4. Read `references/apache-release-gates.md` before packaging, signing,
-   staging, voting, or declaring a candidate ready.
-5. Record the exact upstream commit, RC identifier, signer fingerprint, and
-   evidence directory before mutating external state.
+1. Resolve this Skill directory and the user's workspace.
+2. Read `references/configuration.md` when creating or changing config.
+3. Copy `assets/examples/casbin-go.json` to an ignored project-local path if no
+   active configuration exists. Never fill Apache ID, commit, or fingerprint by
+   guessing; obtain them from the user or verified public state.
+4. Read `references/apache-release-gates.md` before declaring a candidate ready,
+   preparing vote text, or interpreting a failure.
+5. Resolve the configuration to an absolute path, then run the engine from
+   `scripts/ira`:
 
-Stop if the configuration contains placeholders, a non-upstream commit, a
-missing required file, or an unresolved legal or provenance decision.
+```powershell
+go -C <skill-directory>\scripts\ira run .\cmd\ira validate --config <config>
+go -C <skill-directory>\scripts\ira run .\cmd\ira plan --config <config>
+```
 
-## Execute the release workflow
+Stop on placeholders, unsupported adapters, noncanonical endpoints, missing
+policy files, unresolved provenance, or config that does not validate.
 
-1. Fetch the configured repository and resolve the exact 40-character commit.
-2. Create a clean source archive with the configured prefix. Do not use a
-   GitHub-generated source archive.
-3. Extract the archive and enforce one top-level directory.
-4. Check every configured required file.
-5. Run declared project commands in both source and extracted contexts when
-   applicable, preserving complete output as evidence.
-6. Run Apache RAT on the final archive. Classify findings manually; never add
-   ASF headers mechanically to third-party, generated, binary, or test-data
-   files.
-7. Produce an ASCII, LF-only SHA-512 file with two spaces before the plain
-   artifact filename. Verify its bytes and digest independently.
-8. Verify the signing key, Apache UID requirement, key strength, and presence
-   in the configured official `KEYS`; then create and verify a detached ASCII
-   signature in an isolated keyring.
-9. Confirm the candidate directory contains only the source archive,
-   signature, and checksum.
-10. Before ASF dist mutation, show the exact target and request explicit human
-    confirmation. Never overwrite an existing RC directory.
-11. Re-download public dist files and compare checksum, signature, and archive
-    bytes before preparing vote text.
-12. Archive evidence and exact communication text. Changed artifacts require a
-    new RC number and fresh votes.
+## Prepare in the untrusted-code domain
 
-## Handle language and project differences
+Run:
 
-Use `checks.commands`, `checks.requiredFiles`, and RAT configuration for the
-current repository. Add a reusable adapter when several repositories share the
-same language behavior. Do not add project-name conditionals to the shared
-workflow.
+```powershell
+go -C <skill-directory>\scripts\ira run .\cmd\ira prepare --config <config>
+```
 
-The repository root contains `legacy/casbin-go-rc/`, the proven Casbin Go
-PowerShell baseline. Consult it only while migrating a gate or operating that
-specific legacy flow; do not present it as generic automation.
+The engine builds the exact-commit archive, runs RAT, and executes `go test
+./...` in Docker/Podman with only the disposable extracted source mounted. Do
+not reproduce project tests on the host or add credential mounts. A successful
+run prints the artifact SHA-512 and records resumable state under `.ira/runs/`.
 
-## Preserve safety and evidence
+If preparation fails, report the failed gate and evidence path. Use `--clean`
+only for an unstaged matching run after confirming its local work is disposable.
+Changed candidate bytes require a new RC number.
 
-- Never store passwords, tokens, private keys, cookies, or private-list text.
-- Keep local configuration, artifacts, downloaded tools, worktrees, and
-  evidence in ignored paths.
-- Treat signature, checksum, license, provenance, RAT, test, and public-download
-  failures as hard stops.
-- Treat signing, ASF dist writes, vote messages, and announcements as explicit
-  human-confirmation boundaries.
-- Report verified facts separately from assumptions and pending human choices.
+## Sign in the trusted domain
+
+Signing is a separate authority boundary. Show the prepared artifact path and
+SHA-512 to the user. Proceed only when the user explicitly authorizes signing,
+then pass the exact digest printed by `prepare`:
+
+```powershell
+go -C <skill-directory>\scripts\ira run .\cmd\ira sign `
+  --config <config> --confirm <exact-sha512>
+```
+
+The engine re-hashes the artifact, checks the configured private key, project
+UID policy, RSA strength, and official KEYS, then creates and independently
+verifies the detached signature. Never request or store a passphrase.
+
+## Stage and publicly verify
+
+ASF dist mutation requires a second explicit user authorization. Display the
+target URL and exact confirmation text, then run only after approval:
+
+```powershell
+go -C <skill-directory>\scripts\ira run .\cmd\ira stage `
+  --config <config> --confirm "STAGE RC<number>"
+```
+
+The engine refuses an existing RC directory, disables SVN credential caching,
+stages only the archive/signature/checksum, and re-downloads public files for
+byte, checksum, and signature verification. Do not prepare vote text until
+`publicVerified` is true.
+
+## Votes and records
+
+Apache Incubator releases require both phases:
+
+1. podling dev vote;
+2. Incubator general vote after a successful dev vote.
+
+Each vote stays open at least the configured 72 hours. Archive exact draft and
+sent text in the user's project record, not in this tool repository. Separate
+verified facts, binding vote counts, assumptions, and pending human decisions.
+
+## Boundaries
+
+- Current executable adapter: `casbin-go` only.
+- Do not execute arbitrary commands from JSON or introduce a host-test fallback.
+- Do not store passwords, tokens, cookies, private keys, or private-list text.
+- Treat legal, provenance, RAT, test, checksum, signature, KEYS, no-overwrite,
+  and public-download failures as hard stops.
+- Signing, ASF writes, vote sending, and announcements always require explicit
+  human authorization.
+- Consult `legacy/casbin-go-rc/` only as repository history; the bundled Go
+  engine is the operational implementation.

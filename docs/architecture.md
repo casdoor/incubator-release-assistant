@@ -1,65 +1,70 @@
 # Architecture
 
-## Goal
+## Design rule
 
-Support many Apache Incubator repositories without maintaining one release
-script per repository. Repository facts are data; release gates are reusable
-policy; language-specific commands are adapters.
-
-## Layers
+Repository facts are reviewed data, language behavior is an adapter, and ASF
+release gates belong to the engine. Configuration may strengthen a gate but may
+not disable a legal, signature, checksum, vote, or provenance requirement.
 
 ```text
-Human-reviewed JSON configuration
-             |
-             v
-Agent Skill: plan, explain, stop, and request confirmation
-             |
-             v
-Release engine: archive, evidence, checksum, signing, dist
-             |
-             v
-Language/project adapters: build, test, and package-specific checks
+reviewed JSON
+    |
+    v
+strict config + project policy
+    |
+    +--> prepare domain --> adapter sandbox --> artifact + SHA-512 + evidence
+    |
+    +--> sign domain ----> exact digest confirmation --> GPG + official KEYS
+    |
+    +--> stage domain ---> RC confirmation --> ASF dist --> public verification
 ```
 
-### Configuration
+## Current adapter
 
-The configuration records the exact repository, commit, release identity,
-required files, validation commands, signing identity, ASF URLs, and vote
-destinations. It contains no secret values.
+`casbin-go` is the only accepted adapter. Its policy fixes:
 
-### Skill
+- canonical upstream `https://github.com/apache/casbin.git`;
+- the Apache Casbin incubator KEYS and dist locations;
+- `LICENSE`, `NOTICE`, a disclaimer, `go.mod`, `go.sum`, and `.rat-excludes`;
+- Apache RAT 0.18;
+- `go test ./...` in a reviewed Go container;
+- Casbin dev and Incubator general vote destinations.
 
-The Skill resolves the configuration, selects the applicable checks, explains
-gates in plain language, records evidence, and stops when required information
-or human authority is missing.
+This intentional narrowness makes the first implementation executable without
+pretending that unimplemented repositories are supported.
 
-### Engine
+## State and resumption
 
-The future generic engine owns operations that should not vary by language:
+Each candidate has one ignored `.ira/runs/<project>-<version>-rc<n>/` directory:
 
-- creating a clean source archive from an exact commit;
-- enforcing one top-level archive directory;
-- running declared checks and preserving evidence;
-- producing LF-only SHA-512 files;
-- verifying GPG signatures against official `KEYS`;
-- preventing RC directory overwrite;
-- re-downloading public ASF dist files and comparing their bytes.
+- `state.json` records config digest, exact commit, artifact digest, signer, and
+  completed stages;
+- `artifacts/` contains only the source archive, signature, and checksum;
+- `work/` contains disposable repositories, extracts, keyrings, and SVN data;
+- `evidence/` contains complete local command output.
 
-### Adapters
+A resumed step first verifies the config digest and artifact bytes. A staged
+candidate cannot be cleaned; changed bytes require a new RC number.
 
-Adapters contribute build and test commands plus repository-specific
-classifications. Initial targets are Go, Java, Node.js, Python, Rust, and .NET.
-An adapter must not weaken the shared legal, signature, checksum, or vote gates.
+## Trust boundaries
 
-## Migration strategy
+Repository tests execute only in Docker/Podman. The container mounts the
+disposable extracted source, not the host home, artifact directory, GPG keyring,
+or SVN credentials. Signing is a later process which executes no source code.
+Staging is a third process with exact confirmation and no credential cache.
 
-`legacy/casbin-go-rc/` is the executable baseline. Migrate it gate by gate:
+This separation is more important than the implementation language: it prevents
+a compromised test from modifying the signed archive or reading release keys.
 
-1. move hard-coded Casbin names and URLs into configuration;
-2. move `go.mod`, `go.sum`, and `go test ./...` into a Go adapter;
-3. retain the existing checksum, GPG, `KEYS`, SVN, and public-download checks;
-4. add resumable state so prepared artifacts can be staged without rebuilding;
-5. add adapter contract tests before adding more languages.
+## Extension sequence
 
-Until this migration is complete, do not describe the legacy script as a
-repository-neutral release engine.
+1. Add an adapter implementation and project policy as described in
+   `adapter-contract.md`.
+2. Add a reviewed example with no credentials.
+3. Add contract tests proving legal files, archive identity, sandbox behavior,
+   and ASF endpoints cannot be weakened.
+4. Add a CI matrix for the adapter's supported host platforms.
+5. Only then expose the adapter in the schema and Skill.
+
+Do not introduce arbitrary shell strings into configuration. If a behavior is
+reusable, make it typed adapter code with an argument vector and tests.

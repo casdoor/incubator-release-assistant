@@ -6,6 +6,20 @@
 config/local/
 config/**/*.local.json
 script.egg
+.ira/
+
+# Private keys and credential stores (defence in depth; never rely on ignore alone)
+*.pem
+*.key
+*.p12
+*.pfx
+*.kbx
+.gnupg/
+**/private-keys-v1.d/
+credentials.json
+auth.json
+.npmrc
+.pypirc
 
 # Generated release work and downloaded tools
 artifacts/

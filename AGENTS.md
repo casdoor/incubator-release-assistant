@@ -1,28 +1,49 @@
 # Repository guidance
 
-## Purpose
+## Purpose and current scope
 
-Maintain a repository-neutral Agent Skill and deterministic tooling for Apache
-Incubator source releases. Project and language differences belong in reviewed
-configuration or adapters, not in the core workflow.
+Maintain a safe, configuration-driven Apache Incubator release engine and
+self-contained Agent Skill. The current executable scope is Apache Casbin Go
+only. Do not claim support for another project/language until its adapter and
+contract tests exist.
 
-## Boundaries
+## Commands
 
-- Treat `config/release.schema.json` as the public configuration contract.
-- Keep reusable Agent instructions under
-  `skills/incubator-release-assistant/`.
-- Keep project examples free of credentials and private information.
-- Treat `legacy/casbin-go-rc/` as a migration baseline, not the generic engine.
-- Do not silently weaken checksum, signature, legal-file, RAT, test, vote, or
-  public-download verification gates.
-- Require explicit human confirmation immediately before signing, ASF dist
-  mutation, vote sending, or any other irreversible external action.
+```powershell
+# Human entry point
+.\ira.ps1 validate -Config .\config\local\casbin.local.json
+.\ira.ps1 plan -Config .\config\local\casbin.local.json
+.\ira.ps1 prepare -Config .\config\local\casbin.local.json
+
+# Engine tests
+$engine = ".\skills\incubator-release-assistant\scripts\ira"
+go -C $engine test ./...
+go -C $engine vet ./...
+
+# Repository and Skill contract
+.\scripts\validate-repository.ps1
+```
+
+After changing root schema/example files, run
+`scripts/sync-skill-assets.ps1` and commit both mirrors.
+
+## Non-negotiable boundaries
+
+- Project code executes only in the adapter container. Never add a host fallback.
+- The sandbox must not mount artifact, home, GPG, SSH, or credential paths.
+- Signing and staging remain separate commands with exact human confirmations.
+- Configuration contains no arbitrary shell command.
+- ASF legal, disclaimer, RAT, checksum, signature, KEYS, vote, no-overwrite,
+  and public-download gates are engine policy, not optional project data.
+- A staged RC cannot be cleaned or overwritten; changed bytes require a new RC.
+- Treat `legacy/casbin-go-rc/` only as historical migration evidence.
 
 ## Repository hygiene
 
-- Never commit local configuration, release artifacts, private keys, passwords,
-  tokens, cookies, generated evidence, downloaded tools, or working trees.
-- Preserve materially different project-specific behavior in an adapter or
-  example rather than adding project-name conditionals to shared code.
-- Run the Skill validator and configuration validator before publishing
-  changes.
+Never commit active local configuration, `.ira/`, artifacts, evidence, private
+keys, passwords, tokens, cookies, credential stores, or private-list content.
+Public Apache IDs and signing fingerprints may appear only where operationally
+necessary. Keep the gitleaks workflow enabled.
+
+When adding an adapter, follow `docs/adapter-contract.md` and preserve the shared
+trust boundaries rather than adding project-name branches to common execution.

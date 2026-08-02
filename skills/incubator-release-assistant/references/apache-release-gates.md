@@ -1,42 +1,37 @@
-# Apache source release gates
+# Apache Incubator source release gates
 
-## Candidate identity
+## Candidate identity and legal content
 
-- Record the version, RC number, canonical upstream repository, exact commit,
-  artifact name, and signer fingerprint.
-- Build from the exact upstream commit with a clean archive operation.
-- Use a single top-level source directory and exclude VCS metadata and secrets.
-
-## Legal and provenance
-
-- Require the configured `LICENSE`, `NOTICE`, and incubation disclaimer files.
-- Ensure legal files describe content actually bundled in the source archive.
-- Run Apache RAT on the final archive and explain every exclusion.
-- Preserve durable provenance or grant evidence for binary and non-source
-  assets.
+- Use the exact canonical upstream commit and a clean archive operation.
+- The filename includes `incubating` and the archive has one top-level directory.
+- The source root includes `LICENSE`, `NOTICE`, and `DISCLAIMER` or
+  `DISCLAIMER-WIP`; legal files describe the actual bundled content.
+- Run Apache RAT on the final archive and explain exclusions. Never add ASF
+  headers mechanically to third-party, generated, binary, or test-data files.
 
 ## Build and test
 
-- Run configured build and test commands with complete evidence.
-- Test the extracted source archive, not only a developer checkout.
-- Stop if tests mutate tracked fixtures or make the release non-reproducible.
+- Test the extracted source archive rather than only a developer checkout.
+- Treat repository code as untrusted: run it in the adapter sandbox without
+  artifact, home-directory, keyring, SSH, or credential mounts.
+- Preserve complete private evidence and stop on every failing command.
 
 ## Checksum and signature
 
-- Generate SHA-512 as lowercase hexadecimal, two spaces, plain filename, and
-  exactly one LF; reject BOM and CR bytes.
-- Create a detached ASCII-armored signature with the configured private key.
-- Verify the fingerprint, UID and key-strength policy, and official `KEYS` in an
-  isolated keyring.
+- Generate SHA-512 as 128 lowercase hex characters, two spaces, the plain
+  filename, and exactly one LF; reject BOM, CR, extra lines, and path prefixes.
+- Re-hash the prepared artifact immediately before signing.
+- Create an ASCII-armored detached signature only after human authorization.
+- Verify RSA policy, configured UID policy, full fingerprint, and the official
+  project KEYS file in an isolated public keyring.
 
 ## Distribution and votes
 
-- Stage only to ASF dist dev before votes pass.
-- Never overwrite an existing RC directory.
-- Verify files again after downloading them from the public dist URL.
-- Run the podling dev vote first, then the Incubator general vote when required.
-- Keep each vote open for the configured minimum duration and record binding
-  status accurately.
-- If candidate bytes change or a substantive policy issue is found, cancel the
-  RC, increment the RC number, and restart the full workflow and votes.
-- Promote the exact voted bytes to dist release; never rebuild after approval.
+- Stage only to ASF dist dev before votes pass; never overwrite an RC directory.
+- Re-download public files and verify archive bytes, checksum, and signature.
+- Run the podling dev vote first. A successful Incubator general vote is then
+  required for an official podling release.
+- Keep each vote open at least 72 hours and distinguish binding IPMC votes.
+- Changed bytes or a substantive problem cancel the candidate: increment RC and
+  restart both votes.
+- After approval, promote the exact voted bytes; never rebuild them.
