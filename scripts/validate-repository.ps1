@@ -35,12 +35,21 @@ foreach ($required in @(
     "scripts\run.sh",
     "assets\release.schema.json",
     "assets\examples\casbin-go.json",
-    "references\configuration.md"
+    "assets\examples\key-metadata.example.json",
+    "assets\examples\doctor-report.example.json",
+    "references\configuration.md",
+    "references\workspace-bootstrap.md",
+    "references\signing-key-setup.md",
+    "references\asf-keys-publication.md",
+    "references\release-recovery.md"
 )) {
     if (-not (Test-Path -LiteralPath (Join-Path $releaseSkill $required) -PathType Leaf)) {
         throw "Release Skill resource is missing: $required"
     }
 }
+
+Get-Content -LiteralPath (Join-Path $releaseSkill "assets\examples\key-metadata.example.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
+Get-Content -LiteralPath (Join-Path $releaseSkill "assets\examples\doctor-report.example.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
 
 $powerShellWrapper = Get-Content -LiteralPath (Join-Path $releaseSkill "scripts\run.ps1") -Raw
 $bashWrapper = Get-Content -LiteralPath (Join-Path $releaseSkill "scripts\run.sh") -Raw

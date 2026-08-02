@@ -51,7 +51,8 @@ mirrors.
 Never commit active local configuration, `.ira/`, artifacts, evidence, private
 keys, passwords, tokens, cookies, credential stores, or private-list content.
 Public Apache IDs and signing fingerprints may appear only where operationally
-necessary. Keep the gitleaks workflow enabled.
+necessary. Run an available secret scan before publishing changes that touch
+release configuration, key guidance, or evidence handling.
 
 When adding an adapter, follow `docs/adapter-contract.md` and preserve the shared
 trust boundaries rather than adding project-name branches to common execution.

@@ -34,6 +34,7 @@ added without weakening the shared release gates.
 - separate `prepare`, `sign`, and `stage` trust boundaries;
 - an external signing home under the parent workspace, never inside Git;
 - signing-key and official `KEYS` verification in an isolated public keyring;
+- knowledge-guided setup for missing config, signing keys, and official `KEYS`;
 - no-overwrite ASF dist dev staging and public byte-for-byte re-verification;
 - resumable state under ignored `.ira/runs/`;
 - a self-contained Skill containing the Go engine, schema, and Casbin template.
@@ -49,6 +50,18 @@ The release Skill includes `scripts/run.ps1` for Windows PowerShell 5.1+ and
 
 The container engine is a security boundary. IRA intentionally has no
 "run project tests directly on the signing host" fallback.
+
+## Activate the release Skill
+
+The operational instructions live in
+[`skills/incubator-release-assistant/SKILL.md`](skills/incubator-release-assistant/SKILL.md).
+Install that Skill directory using the Agent client's Skill mechanism, or
+explicitly ask an Agent working with this clone to read and follow that file.
+Cloning a repository does not guarantee that every Agent client automatically
+discovers a nested Skill.
+
+The Skill uses progressive disclosure. It reads detailed setup knowledge only
+when config, signing-key, official-KEYS, or recovery help is needed.
 
 ## Expected Claude Code workspace
 
@@ -66,7 +79,7 @@ Clone with the intended directory name and prepare the external key directory:
 
 ```bash
 cd /abc
-git clone https://github.com/EmryZhang/incubator-release-assistant.git Incubator-release-assistant
+git clone https://github.com/casdoor/incubator-release-assistant.git Incubator-release-assistant
 mkdir -p secretkey
 chmod 700 secretkey
 ```
@@ -81,6 +94,32 @@ Git metadata, preventing accidental capture by a larger wrapper repository.
 
 The ASF `KEYS` file is public verification material. IRA downloads a disposable
 copy under ignored run state; it is not the release manager's private keyring.
+
+If setup is incomplete, the release Skill does not stop at the raw engine
+error. It loads the matching bundled reference and explains:
+
+- the resolved config, external GPG home, public-key export, and evidence paths;
+- which files are user-provided, Agent-generated, GPG-managed, or official ASF
+  state;
+- the exact safe next action;
+- the separate confirmation required before key generation or official KEYS
+  publication.
+
+The normal layout may also include public, non-secret key material:
+
+```text
+/abc/
+├── Incubator-release-assistant/
+│   ├── config/local/casbin.local.json   ignored non-secret config
+│   └── .ira/runs/                       generated state and evidence
+├── secretkey/                           GPG-managed private home
+└── public-key/
+    ├── apache-casbin-release-key.asc    generated public export
+    └── key-metadata.json                generated public metadata
+```
+
+Do not manually create individual files inside `secretkey/`; GPG owns that
+directory. See the Skill references for Windows, Linux, and macOS examples.
 
 ## Human workflow
 
@@ -223,6 +262,7 @@ skills/apache-incubator-handbook/
 skills/incubator-release-assistant/
   SKILL.md                      Agent workflow
   assets/                       Self-contained schema and template mirrors
+  references/                   Config, workspace, key, KEYS, and recovery guidance
   scripts/run.ps1               Windows Skill entry point
   scripts/run.sh                Linux/macOS Skill entry point
   scripts/ira/                  Go CLI, engine, and tests

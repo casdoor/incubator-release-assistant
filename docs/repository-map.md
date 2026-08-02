@@ -31,12 +31,6 @@ ira.ps1 / ira.sh
 设置为外置 GPG home，并拒绝仓库内部或任何更大 Git 工作树内的密钥目录。
 因此 `/abc` 本身应为普通目录，而不是 Git 仓库。
 
-## `.github/`
-
-- `.github/workflows/ci.yml`: 在 Windows、Linux 和 macOS 上检查 Go 格式、
-  测试、`go vet` 与对应平台入口，另行验证仓库/Skill 镜像契约并扫描提交
-  历史中的秘密信息。
-
 ## `config/`
 
 这是供直接克隆完整仓库的用户使用的配置入口。
@@ -97,11 +91,21 @@ Skill 后不依赖仓库根目录源码。
 - `SKILL.md`: Agent 的正常工作流：选 commit、prepare、sign、stage、公开
   复验，最后提醒作者亲自检查 RAT 和法律文件。
 - `agents/openai.yaml`: Skill 在客户端显示的名称、短描述和默认提示语。
-- `evals/evals.json`: 五个行为样例，覆盖只 prepare、恢复后签名、拒绝未实现
-  的 Java/任意命令、macOS 使用 Bash 入口，以及 `/abc` 外置密钥布局。
+- `evals/evals.json`: 行为样例，覆盖 prepare、恢复后签名、平台入口、外置
+  密钥布局，以及缺配置、缺私钥、未发布 KEYS 和不安全目录的引导。
 - `references/configuration.md`: 仅在创建或修改配置时读取的字段说明。
+- `references/workspace-bootstrap.md`: 缺配置或目录不安全时，说明标准工作区、
+  文件职责、示例和安全创建步骤。
+- `references/signing-key-setup.md`: 缺少或不合规签名密钥时，说明外置 GPG
+  home、RSA 4096、Apache UID、公钥导出和用户提示。
+- `references/asf-keys-publication.md`: 本地密钥合规但官方 `KEYS` 缺失时，
+  说明公开导出、SVN diff、确认、提交和公网回读。
+- `references/release-recovery.md`: 将配置、密钥、KEYS 和续跑错误路由到唯一
+  下一步。
 - `assets/release.schema.json`: `config/release.schema.json` 的 Skill 内镜像。
 - `assets/examples/casbin-go.json`: 根目录 Casbin 示例的 Skill 内镜像。
+- `assets/examples/key-metadata.example.json`: 不含秘密的公钥元数据示例。
+- `assets/examples/doctor-report.example.json`: 结构化缺项、路径和下一步示例。
 - `scripts/run.ps1`: Windows PowerShell 5.1+ 入口，解析外置
   `-SecretDirectory`。
 - `scripts/run.sh`: Linux/macOS Bash 入口，解析外置 `--secret-dir`。

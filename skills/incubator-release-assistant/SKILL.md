@@ -1,6 +1,6 @@
 ---
 name: incubator-release-assistant
-description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, sign it, upload it to ASF dist dev, and verify the public files with the bundled IRA engine. Use this skill whenever a user wants to prepare, resume, sign, upload, or verify a Casbin RC. The current implementation supports only Apache Casbin Go.
+description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, including guiding a new release manager through missing config, signing-key, and official KEYS setup; then prepare, resume, sign, upload, and verify the RC with the bundled IRA engine. Use this skill whenever a user wants to set up, prepare, resume, sign, upload, or verify a Casbin RC, even when they have not configured a key yet. The current implementation supports only Apache Casbin Go.
 ---
 
 # Incubator Release Assistant
@@ -50,6 +50,39 @@ bash <skill-directory>/scripts/run.sh plan --config <config>
 
 Stop when the configuration does not validate. Tell the user exactly which
 field must be supplied or corrected, then continue from the same step.
+
+## Route incomplete setup through bundled knowledge
+
+Do not leave a new release manager with a terse engine error. Resolve the
+actual absolute paths, read only the matching reference, and explain the files
+and next action in plain language:
+
+- config missing, placeholder Apache ID/fingerprint, or unsafe workspace:
+  read `references/workspace-bootstrap.md`;
+- private key unavailable, wrong algorithm/size, missing Apache UID, expired,
+  revoked, or unable to sign: read `references/signing-key-setup.md`;
+- configured fingerprint absent from official Casbin `KEYS`: read
+  `references/asf-keys-publication.md`;
+- incomplete or resumable run state, changed bytes, or uncertainty about which
+  step to repeat: read `references/release-recovery.md`.
+
+For every setup response, show:
+
+1. the current gate and why it matters;
+2. the resolved config, private GPG home, public export, and evidence paths that
+   apply;
+3. who creates each file and whether it is secret;
+4. one safe next action the Agent can perform;
+5. the exact later mutation that still needs human approval.
+
+`secretkey/` is a GPG-managed directory, not a private-key file the user should
+copy into the repository. The public `*.asc` export may be reviewed and added to
+ASF `KEYS`; it is different from the private GPG home. Never guess an Apache ID
+or fingerprint, and never route an active user to `legacy/`.
+
+After the missing item is supplied, rerun the failed validation or signing
+step and continue from the same state. Do not restart or rebuild a frozen
+candidate merely because setup was incomplete.
 
 ## Prepare in the untrusted-code domain
 
