@@ -1,6 +1,6 @@
 ---
 name: incubator-release-assistant
-description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, including guiding a new release manager through missing config, signing-key, and official KEYS setup; then prepare, resume, sign, upload, and verify the RC with the bundled IRA engine. Use this skill whenever a user wants to set up, prepare, resume, sign, upload, or verify a Casbin RC, even when they have not configured a key yet. The engine supports only Apache Casbin Go; the skill also guides manual package releases to crates.io and Maven Central for Casbin adapter repositories that removed semantic-release.
+description: Turn a selected Apache Casbin Go commit into an Incubator release candidate, including guiding a new release manager through missing config, signing-key, and official KEYS setup; then prepare, resume, sign, upload, and verify the RC with the bundled IRA engine. Use this skill whenever a user wants to set up, prepare, resume, sign, upload, or verify a Casbin RC, even when they have not configured a key yet. The engine supports only Apache Casbin Go; the skill also guides manual publishing for Casbin adapter repositories via pluggable language templates (currently Rust / crates.io and Java / Maven Central, with more to be added).
 ---
 
 # Incubator Release Assistant
@@ -192,23 +192,31 @@ only when the user asks; they are not part of this Skill's normal RC run.
 
 Package registries are a separate authority boundary from the RC workflow. The
 engine steps above never touch crates.io, Maven Central, or any other package
-registry. When the user asks to publish a new version of a Casbin adapter
-repository whose semantic-release was removed (for example
-`casbin-sqlx-adapter` or `casbin-jcasbin-jdbc-adapter`), follow the reference
-instead of the engine commands:
+registry. When the user asks to publish a Casbin adapter repository whose
+semantic-release was removed, follow the reference instead of the engine
+commands:
 
-1. read `references/manual-package-release.md` and confirm the target
-   repository and registry;
-2. check the release is ready: the tag and the version in `Cargo.toml` or
-   `pom.xml` match, upstream CI passed, and the working tree is clean;
-3. show the user the planned version, tag, and registry, and wait for explicit
-   authorization before publishing;
-4. run the publish commands from the reference with credentials read only
-   from environment variables or external secret storage; never write them
-   into configuration, JSON, or the repository;
-5. verify the published version on the registry and report its URL;
-6. do not guess or bump version numbers, and do not re-run a publish that
-   already succeeded.
+1. read `references/manual-package-release.md`.  This reference is activated
+   only on an explicit user request; do not monitor tags or scan repositories
+   on your own;
+2. ask the user for the **repository name** (e.g. `casbin-sqlx-adapter`)
+   and the **release tag**.  Do not guess or create tags;
+3. run the **Common pre-flight** checks from the reference: clone from the
+   Apache canonical upstream (warn if the URL points to a personal fork,
+   do not hard-stop), checkout the tag, verify the tree is clean, detect
+   the project language from the manifest file, verify the tag-version
+   match, and confirm upstream CI passed.  Stop if any check fails;
+4. jump to the **language-specific template** (currently Rust and Java)
+   in the reference.  Do not read the other template.  Follow it through
+   compile, package, and dry-run;
+5. present the **confirmation preview** from the template.  Let the user
+   edit any field (version, tag, package name) before confirming.
+   Wait for an explicit "CONFIRM" — do not proceed on a simple "yes";
+6. ask where the registry credentials are (environment variable, file path,
+   or secret store).  Read them only from the location the user specifies;
+7. run the publish command.  Report the result and the verification URL.
+   Clean up `/tmp/ira-publish/<repo>` when done.  Do not retry a failed
+   publish automatically.
 
 ## Boundaries
 
