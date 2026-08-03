@@ -13,6 +13,7 @@ and give the user one concrete next action.
 | `IRA-KEYS-001` / fingerprint absent from official KEYS | `asf-keys-publication.md` | prepare public-key publication |
 | `IRA-WORKSPACE-001` / secret directory is inside Git | `workspace-bootstrap.md` | move to a plain external directory |
 | `IRA-DEPENDENCY-001` or `IRA-PREFLIGHT-001` | `prerequisites.md` | install the one missing command or retry the public check |
+| prepare is still running without recent output | this page | read the latest `evidence/*.log`, match its PID and command, and preserve the run |
 | incomplete prepare state exists | this page | inspect evidence, then approve `--clean` only if unstaged data is disposable |
 | prepared/signed/staged state exists | this page | re-run the same command and let IRA revalidate frozen bytes |
 | frozen candidate bytes differ | this page | stop and use a new RC number |

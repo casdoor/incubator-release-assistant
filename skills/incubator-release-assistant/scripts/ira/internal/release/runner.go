@@ -7,11 +7,26 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Runner struct {
-	Out io.Writer
+	Out              io.Writer
+	ProgressInterval time.Duration
+}
+
+type lockedWriter struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+func (w *lockedWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.w.Write(p)
 }
 
 func (r Runner) Run(logPath, dir, name string, args ...string) error {
@@ -36,17 +51,75 @@ func (r Runner) run(interactive bool, logPath, dir, name string, args ...string)
 		return err
 	}
 	defer logFile.Close()
+	sink := &lockedWriter{w: io.MultiWriter(r.Out, logFile)}
+	started := time.Now()
+	displayDir := dir
+	if displayDir == "" {
+		displayDir, _ = os.Getwd()
+	}
+	if abs, absErr := filepath.Abs(displayDir); absErr == nil {
+		displayDir = abs
+	}
+	displayLog := logPath
+	if abs, absErr := filepath.Abs(logPath); absErr == nil {
+		displayLog = abs
+	}
+	command := renderCommand(name, args)
+	fmt.Fprintf(sink, "[IRA] START time=%s\n[IRA] COMMAND %s\n[IRA] WORKDIR %s\n[IRA] LOG %s\n",
+		started.Format(time.RFC3339), command, displayDir, displayLog)
+
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
-	cmd.Stdout = io.MultiWriter(r.Out, logFile)
-	cmd.Stderr = io.MultiWriter(r.Out, logFile)
+	cmd.Stdout = sink
+	cmd.Stderr = sink
 	if interactive {
 		cmd.Stdin = os.Stdin
 	}
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s failed: %w (see %s)", name, err, logPath)
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(sink, "[IRA] FAILED duration=%s error=%q\n", time.Since(started).Round(time.Millisecond), err)
+		return fmt.Errorf("%s failed to start: %w (see %s)", name, err, logPath)
 	}
-	return nil
+	fmt.Fprintf(sink, "[IRA] PID %d\n", cmd.Process.Pid)
+
+	interval := r.ProgressInterval
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	for {
+		select {
+		case err := <-done:
+			duration := time.Since(started).Round(time.Millisecond)
+			if err != nil {
+				fmt.Fprintf(sink, "[IRA] FAILED duration=%s error=%q\n", duration, err)
+				return fmt.Errorf("%s failed after %s: %w (see %s)", name, duration, err, logPath)
+			}
+			fmt.Fprintf(sink, "[IRA] DONE duration=%s\n", duration)
+			return nil
+		case <-ticker.C:
+			fmt.Fprintf(sink, "[IRA] RUNNING elapsed=%s pid=%d command=%s log=%s\n",
+				time.Since(started).Round(time.Second), cmd.Process.Pid, command, displayLog)
+		}
+	}
+}
+
+func renderCommand(name string, args []string) string {
+	parts := make([]string, 0, len(args)+1)
+	parts = append(parts, quoteCommandArg(name))
+	for _, arg := range args {
+		parts = append(parts, quoteCommandArg(arg))
+	}
+	return strings.Join(parts, " ")
+}
+
+func quoteCommandArg(value string) string {
+	if value == "" || strings.ContainsAny(value, " \t\r\n\"") {
+		return strconv.Quote(value)
+	}
+	return value
 }
 
 func (r Runner) Output(dir, name string, args ...string) (string, error) {
