@@ -128,7 +128,8 @@ Skill 后不依赖仓库根目录源码。
 - `scripts/ira/internal/release/state.go`: 保存 prepare/sign/stage/publicVerified
   状态以及三个候选文件的摘要，用于安全续跑。
 - `scripts/ira/internal/release/runner.go`: 统一启动 Git、tar、Java、Go、GPG、
-  SVN 等外部命令，记录日志，并严格解析 LF-only SHA-512 文件。
+  SVN 等外部命令，实时记录命令、工作目录、日志路径、进程 PID、30 秒心跳和
+  耗时，并严格解析 LF-only SHA-512 文件。
 - `scripts/ira/internal/release/config_test.go`: 当前测试集合，覆盖配置约束、
   CRLF/BOM 校验、状态保存、本机测试命令、错误确认和文件字节变化等。
 - `scripts/ira/internal/release/doctor_test.go`: 覆盖缺配置、公开输入、缺指纹、

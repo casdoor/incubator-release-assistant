@@ -38,6 +38,16 @@ After changing root schema/example files, run
 `Incubator-release-assistant/scripts/sync-skill-assets.ps1` and commit both
 mirrors.
 
+## Commit and pull-request convention
+
+Use Conventional Commits for every non-merge commit subject and PR title:
+`type[(scope)]: summary`. Allowed default types are `feat`, `fix`, `docs`,
+`style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, and `revert`.
+Examples: `feat: add prepare progress logs` and
+`docs: document semantic commit rules`. Before pushing, inspect every subject
+in the PR range and make the PR title semantic as well; squash merges use that
+title. Do not rely on an empty follow-up commit to repair a non-semantic change.
+
 ## Non-negotiable boundaries
 
 - Project tests execute from the disposable extracted source tree with the fixed
