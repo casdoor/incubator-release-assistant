@@ -11,7 +11,7 @@
 
 - the source repository and every test/build action in it;
 - release configuration received through a pull request;
-- downloaded tools and container images until verified/reviewed;
+- downloaded tools until verified/reviewed;
 - existing local run directories until their recorded hashes are checked.
 
 ## Controls
@@ -21,7 +21,8 @@
 - names and paths are normalized and traversal is rejected;
 - arbitrary commands are absent from configuration;
 - RAT downloads are obtained from ASF and verified with the published SHA-512;
-- project code runs in a container without artifact or credential mounts;
+- project tests run from the disposable extracted source tree with a fixed host
+  command before the separate signing stage;
 - platform wrappers keep the signing keyring in an external sibling
   `secretkey` directory, and the engine rejects repository-contained or
   relative secret paths;
@@ -32,20 +33,18 @@
 - existing remote RC directories are never overwritten;
 - public files are downloaded and verified after staging;
 - local configs, state, artifacts, evidence, credentials, and common key formats
-  are ignored, while CI scans committed history for secrets.
+  are ignored; staged changes must be inspected for secrets before committing.
 
 The expected checkout `/abc/Incubator-release-assistant` and key root
 `/abc/secretkey` are siblings under a non-Git `/abc` workspace. Git never
 traverses the sibling directory, and
 staging uploads only the source archive, LF-only checksum, and detached public
-signature. Private key files are neither mounted into the test container nor
-copied into release artifacts.
+signature. Private key files are not copied into release artifacts.
 
 ## Residual risks
 
-- Docker/Podman controls a privileged host service and must be trusted;
-- the reviewed container tag can change upstream; command evidence records the
-  runtime, and a future release should support immutable image digests;
+- host Go tests run with the current user's permissions and are not sandboxed;
+  the exact upstream commit and local environment must be trusted;
 - GPG pinentry and SVN authentication are external programs;
 - a release manager must still review legal/provenance findings;
 - ignored files are not a security boundary, so secret scanning remains

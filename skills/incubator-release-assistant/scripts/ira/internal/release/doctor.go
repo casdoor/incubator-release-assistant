@@ -148,7 +148,7 @@ func (e Engine) Doctor(configPath string) DoctorReport {
 		)
 	}
 
-	for _, command := range []string{"git", "tar", "java", "svn", "gpg", cfg.Runtime.Container.Engine} {
+	for _, command := range []string{"git", "tar", "java", "svn", "gpg", "go"} {
 		if err := commandExists(command); err != nil {
 			return blocked("IRA-DEPENDENCY-001", err.Error(), PrerequisitesReference, "install_missing_dependency", command)
 		}

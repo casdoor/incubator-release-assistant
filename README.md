@@ -60,8 +60,11 @@ Do not put private keys, passphrases, tokens, or credentials in this repository
 or in its JSON configuration.
 
 Once setup is ready, the Agent validates the plan, prepares the source archive,
-and asks for confirmation at the signing and ASF upload boundaries. Voting and
-final release promotion remain separate human-led steps.
+and asks for confirmation at the signing and ASF upload boundaries. Docker and
+Podman are not required: `prepare` runs `go test ./...` with the installed host
+Go toolchain from the disposable extracted source tree. Host tests run with the
+current user's permissions, so use a reviewed upstream commit. Voting and final
+release promotion remain separate human-led steps.
 
 ## Guides
 

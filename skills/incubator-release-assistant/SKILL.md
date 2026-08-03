@@ -117,8 +117,9 @@ On Linux/macOS use `bash <skill-directory>/scripts/run.sh prepare --config
 <config>`.
 
 The engine builds the selected commit, runs RAT, and executes `go test ./...`
-in Docker/Podman. A successful run prints the artifact SHA-512 and records
-resumable state under `.ira/runs/`.
+with the host Go toolchain from the disposable extracted source tree. Docker
+and Podman are not required. A successful run prints the artifact SHA-512 and
+records resumable state under `.ira/runs/`.
 
 If preparation fails, report the failed gate and evidence path. Use `--clean`
 only for an unstaged matching run after confirming its local work is disposable.
