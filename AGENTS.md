@@ -40,8 +40,10 @@ mirrors.
 
 ## Non-negotiable boundaries
 
-- Project code executes only in the adapter container. Never add a host fallback.
-- The sandbox must not mount artifact, home, GPG, SSH, or credential paths.
+- Project tests execute from the disposable extracted source tree with the fixed
+  adapter command `go test ./...`; never accept project commands from JSON.
+- `prepare` must not invoke GPG or ASF-authenticated commands. Host tests run
+  with the current user's permissions, so only use a reviewed upstream commit.
 - The Agent runs from the parent workspace. Keep the checkout and secret root as
   siblings (`/abc/Incubator-release-assistant` and `/abc/secretkey`); never
   weaken the wrapper/engine rejection of repository-contained keys.
@@ -58,7 +60,8 @@ Never commit active local configuration, `.ira/`, artifacts, evidence, private
 keys, passwords, tokens, cookies, credential stores, or private-list content.
 Public Apache IDs and signing fingerprints may appear only where operationally
 necessary. Run an available secret scan before publishing changes that touch
-release configuration, key guidance, or evidence handling.
+release configuration, key guidance, or evidence handling, and inspect staged
+changes before committing.
 
 When adding an adapter, follow `docs/adapter-contract.md` and preserve the shared
 trust boundaries rather than adding project-name branches to common execution.

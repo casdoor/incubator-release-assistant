@@ -7,13 +7,12 @@ Read this reference when `doctor` returns `IRA-DEPENDENCY-001` or
 
 | Command | Used for | Required before |
 | --- | --- | --- |
-| `go` | run the bundled IRA engine | every command |
+| `go` | run the bundled IRA engine and project tests | every command and `prepare` |
 | `git` | fetch and archive the selected commit | `prepare` |
 | `tar` | inspect the source archive | `prepare` |
 | `java` | run Apache RAT | `prepare` |
 | `svn` | download RAT/KEYS and write ASF dist dev | `doctor`, `prepare`, `stage` |
 | `gpg` | inspect keys, sign, and verify | `doctor`, `sign` |
-| `docker` or `podman` | isolate project tests | `prepare` |
 
 Check what the current shell can see:
 
@@ -24,7 +23,6 @@ tar --version
 java -version
 svn --version --quiet
 gpg --version
-docker version
 ```
 
 ```bash
@@ -34,12 +32,11 @@ tar --version
 java -version
 svn --version --quiet
 gpg --version
-docker version
 ```
 
-Use `podman version` instead of `docker version` when the config selects
-Podman. Install a missing command from the operating system's trusted package
-source, then open a new terminal if the installer changed `PATH`.
+Docker and Podman are not required. Install a missing command from the operating
+system's trusted package source, then open a new terminal if the installer
+changed `PATH`.
 
 `IRA-PREFLIGHT-001` can also mean that the public ASF `KEYS` check could not
 reach its HTTPS/SVN endpoint. Show the underlying error, preserve the config
