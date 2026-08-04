@@ -32,6 +32,12 @@ ira.ps1 / ira.sh
 设置为外置 GPG home，并拒绝仓库内部或任何更大 Git 工作树内的密钥目录。
 因此 `/abc` 本身应为普通目录，而不是 Git 仓库。
 
+## `.github/`
+
+- `.github/workflows/ci.yml`: 本仓库自身的轻量 CI（10 分钟上限），运行 IRA
+  引擎的 `go test`、`go vet`、`gofmt` 检查、Bash 包装脚本语法检查和
+  `scripts/validate-repository.ps1`；不构建也不测试目标发布项目。
+
 ## `config/`
 
 这是供直接克隆完整仓库的用户使用的配置入口。
@@ -58,7 +64,8 @@ ira.ps1 / ira.sh
 - `scripts/sync-skill-assets.ps1`: 将根目录的 schema 和示例复制到自包含
   Skill，避免两套配置漂移。
 - `scripts/validate-repository.ps1`: 比较两套配置副本的 SHA-256，检查 JSON
-  可解析、Skill frontmatter 和必需资源是否存在。
+  可解析、Skill frontmatter 和必需资源是否存在，并确认引擎没有重新引入目标
+  项目测试执行、轻量 CI 工作流仍包含必需检查。
 
 ## `skills/apache-incubator-handbook/`
 
@@ -124,14 +131,16 @@ Skill 后不依赖仓库根目录源码。
 - `scripts/ira/internal/release/config.go`: 读取、严格校验配置，并派生运行 ID、
   产物名和 `.ira/runs/...` 状态目录，同时验证外置密钥目录不在仓库内。
 - `scripts/ira/internal/release/engine.go`: 核心流程；克隆 commit、打包、解压、
-  RAT、本机 Go 测试、SHA-512、GPG 签名、SVN 上传和公开复验都在这里编排。
+  RAT、SHA-512、GPG 签名、SVN 上传和公开复验都在这里编排；`prepare` 不执行
+  目标项目代码，项目测试由所选 commit 自身的 GitHub CI 负责。
 - `scripts/ira/internal/release/state.go`: 保存 prepare/sign/stage/publicVerified
   状态以及三个候选文件的摘要，用于安全续跑。
-- `scripts/ira/internal/release/runner.go`: 统一启动 Git、tar、Java、Go、GPG、
+- `scripts/ira/internal/release/runner.go`: 统一启动 Git、tar、Java、GPG、
   SVN 等外部命令，实时记录命令、工作目录、日志路径、进程 PID、30 秒心跳和
   耗时，并严格解析 LF-only SHA-512 文件。
 - `scripts/ira/internal/release/config_test.go`: 当前测试集合，覆盖配置约束、
-  CRLF/BOM 校验、状态保存、本机测试命令、错误确认和文件字节变化等。
+  CRLF/BOM 校验、状态保存、`prepare` 不重跑目标项目测试的边界、错误确认和
+  文件字节变化等。
 - `scripts/ira/internal/release/doctor_test.go`: 覆盖缺配置、公开输入、缺指纹、
   不安全工作区和错误码路由。
 
