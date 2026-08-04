@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  lightweight-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: skills/incubator-release-assistant/scripts/ira
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: skills/incubator-release-assistant/scripts/ira/go.mod
+          cache: false
+
+      - name: Test IRA engine
+        run: go test ./...
+
+      - name: Vet IRA engine
+        run: go vet ./...
+
+      - name: Check Go formatting
+        shell: bash
+        run: |
+          unformatted="$(gofmt -l .)"
+          test -z "$unformatted" || {
+            printf 'Run gofmt on:\n%s\n' "$unformatted"
+            exit 1
+          }
+
+      - name: Check Bash wrapper syntax
+        shell: bash
+        working-directory: .
+        run: bash -n skills/incubator-release-assistant/scripts/run.sh ira.sh
+
+      - name: Validate repository contracts
+        shell: pwsh
+        working-directory: .
+        run: ./scripts/validate-repository.ps1

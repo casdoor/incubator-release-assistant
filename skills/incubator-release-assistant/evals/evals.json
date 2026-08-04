@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Prepare Apache Casbin 3.11.0-incubating RC2 from a reviewed full commit, but do not sign or upload anything yet.",
-      "expected_output": "The agent validates and plans with the bundled engine, runs prepare only, executes go test ./... on the host from the disposable extracted source tree, and reports the artifact SHA-512 and evidence path without invoking signing or ASF-authenticated commands.",
+      "expected_output": "The agent validates and plans with the bundled engine, runs prepare only, checks the source archive and RAT without executing target-project code, reminds the user to verify GitHub CI for the exact commit, and reports the artifact SHA-512 and evidence path without invoking signing or ASF-authenticated commands.",
       "files": []
     },
     {

@@ -50,6 +50,24 @@ foreach ($required in @(
     }
 }
 
+if (-not (Test-Path -LiteralPath (Join-Path $root ".github\workflows\ci.yml") -PathType Leaf)) {
+    throw "Lightweight CI workflow is missing: .github/workflows/ci.yml"
+}
+
+$engineText = Get-Content -LiteralPath (Join-Path $releaseSkill "scripts\ira\internal\release\engine.go") -Raw
+foreach ($forbidden in @("go test", "runCasbinGoTests", "casbinGoTestCommand")) {
+    if ($engineText -match [regex]::Escape($forbidden)) {
+        throw "IRA prepare must not execute target-project tests: found $forbidden in engine.go"
+    }
+}
+
+$ciText = Get-Content -LiteralPath (Join-Path $root ".github\workflows\ci.yml") -Raw
+foreach ($requiredCheck in @("go test ./...", "go vet ./...", "gofmt -l", "bash -n", "validate-repository.ps1")) {
+    if ($ciText -notmatch [regex]::Escape($requiredCheck)) {
+        throw "Lightweight CI is missing required repository check: $requiredCheck"
+    }
+}
+
 Get-Content -LiteralPath (Join-Path $releaseSkill "assets\examples\key-metadata.example.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
 Get-Content -LiteralPath (Join-Path $releaseSkill "assets\examples\doctor-report.example.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
 
