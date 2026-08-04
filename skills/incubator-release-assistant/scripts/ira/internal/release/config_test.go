@@ -201,19 +201,14 @@ func TestStateCanBeSavedRepeatedlyOnWindows(t *testing.T) {
 	}
 }
 
-func TestCasbinGoSandboxMountsOnlyReadOnlySource(t *testing.T) {
-	cfg := validConfig(t)
-	args := casbinGoTestArgs(cfg, filepath.Join("safe", "extracted"))
-	joined := strings.Join(args, " ")
-	for _, required := range []string{"--read-only", "--cap-drop=ALL", "no-new-privileges", "dst=/input,readonly", "go test ./..."} {
-		if !strings.Contains(joined, required) {
-			t.Errorf("sandbox arguments missing %q: %s", required, joined)
-		}
+func TestCasbinGoTestsRunFromExtractedSourceOnHost(t *testing.T) {
+	extracted := filepath.Join("safe", "extracted")
+	dir, name, args := casbinGoTestCommand(extracted)
+	if dir != extracted {
+		t.Fatalf("unexpected test directory: %s", dir)
 	}
-	for _, forbidden := range []string{".gnupg", ".ssh", "artifacts", "dst=/root", "--privileged"} {
-		if strings.Contains(strings.ToLower(joined), forbidden) {
-			t.Errorf("sandbox arguments contain forbidden mount/flag %q: %s", forbidden, joined)
-		}
+	if name != "go" || strings.Join(args, " ") != "test ./..." {
+		t.Fatalf("unexpected host test command: %s %s", name, strings.Join(args, " "))
 	}
 }
 

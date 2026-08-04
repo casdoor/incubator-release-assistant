@@ -117,8 +117,22 @@ On Linux/macOS use `bash <skill-directory>/scripts/run.sh prepare --config
 <config>`.
 
 The engine builds the selected commit, runs RAT, and executes `go test ./...`
-in Docker/Podman. A successful run prints the artifact SHA-512 and records
-resumable state under `.ira/runs/`.
+with the host Go toolchain from the disposable extracted source tree. Docker
+and Podman are not required. A successful run prints the artifact SHA-512 and
+records resumable state under `.ira/runs/`.
+
+Every potentially long-running external command prints an `[IRA] START` record
+with its command, working directory, evidence-log path, and child-process PID.
+While it is still running, the engine prints an `[IRA] RUNNING` heartbeat every
+30 seconds; completion prints `[IRA] DONE` or `[IRA] FAILED` with elapsed time.
+The same records and live command output are written immediately to the named
+`evidence/*.log` file.
+
+If the user reports that `prepare` appears stuck, do not immediately restart it
+or use `--clean`. Identify the most recent `[IRA] START`/`[IRA] RUNNING` record,
+read the named evidence log, and inspect that exact child process or its network
+access. Report the active phase, elapsed time, last log output, and safest next
+action. Preserve the run directory so another Agent can continue the diagnosis.
 
 If preparation fails, report the failed gate and evidence path. Use `--clean`
 only for an unstaged matching run after confirming its local work is disposable.

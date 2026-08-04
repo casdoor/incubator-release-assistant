@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "project", "source", "release", "checks", "signing", "distribution", "runtime"],
   "properties": {
-    "schemaVersion": {"const": "3"},
+    "schemaVersion": {"const": "4"},
     "project": {
       "type": "object",
       "additionalProperties": false,
@@ -92,19 +92,9 @@
     "runtime": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stateDirectory", "container"],
+      "required": ["stateDirectory"],
       "properties": {
-        "stateDirectory": {"const": ".ira"},
-        "container": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["engine", "image", "network"],
-          "properties": {
-            "engine": {"enum": ["docker", "podman"]},
-            "image": {"const": "golang:1.24"},
-            "network": {"enum": ["default", "none"]}
-          }
-        }
+        "stateDirectory": {"const": ".ira"}
       }
     }
   }

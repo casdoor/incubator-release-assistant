@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	SupportedSchema            = "3"
+	SupportedSchema            = "4"
 	SupportedAdapter           = "casbin-go"
 	SecretDirectoryEnvironment = "IRA_SECRET_DIR"
 	RepositoryRootEnvironment  = "IRA_REPOSITORY_ROOT"
@@ -85,14 +85,7 @@ type Distribution struct {
 }
 
 type Runtime struct {
-	StateDirectory string    `json:"stateDirectory"`
-	Container      Container `json:"container"`
-}
-
-type Container struct {
-	Engine  string `json:"engine"`
-	Image   string `json:"image"`
-	Network string `json:"network"`
+	StateDirectory string `json:"stateDirectory"`
 }
 
 func LoadConfig(path string) (*Config, error) {
@@ -139,7 +132,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	add(c.SchemaVersion != SupportedSchema, "schemaVersion must be 3")
+	add(c.SchemaVersion != SupportedSchema, "schemaVersion must be 4")
 	add(c.Project.ID != "casbin", "project.id must be casbin in the current release")
 	add(c.Project.DisplayName != "Apache Casbin", "project.displayName must be Apache Casbin")
 	add(c.Project.Adapter != SupportedAdapter, "project.adapter must be casbin-go; no other adapter is implemented yet")
@@ -180,9 +173,6 @@ func (c *Config) Validate() error {
 	add(c.Distribution.DevURL != "https://dist.apache.org/repos/dist/dev/incubator/casbin", "distribution.devUrl must be the official Casbin incubator dev URL")
 
 	add(c.Runtime.StateDirectory != ".ira", "runtime.stateDirectory must be .ira")
-	add(c.Runtime.Container.Engine != "docker" && c.Runtime.Container.Engine != "podman", "runtime.container.engine must be docker or podman")
-	add(c.Runtime.Container.Image != "golang:1.24", "runtime.container.image must be the reviewed golang:1.24 image")
-	add(c.Runtime.Container.Network != "default" && c.Runtime.Container.Network != "none", "runtime.container.network must be default or none")
 
 	for _, rawURL := range []string{c.Source.Repository, c.Signing.KeysURL, c.Distribution.DevURL} {
 		add(!validHTTPSURL(rawURL), "URL must be an absolute HTTPS URL: "+rawURL)

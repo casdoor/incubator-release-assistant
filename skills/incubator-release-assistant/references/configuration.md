@@ -7,8 +7,8 @@ reviewed template in place.
 
 ## Current contract
 
-- `schemaVersion`: must be `3`. Version 3 removes the unused `votes` and
-  `distribution.releaseUrl` fields from the focused dist-dev RC workflow.
+- `schemaVersion`: must be `4`. Version 4 removes the Docker/Podman runtime
+  configuration and uses the installed host Go toolchain.
 - `project`: fixed Casbin identity, `casbin-go` adapter, and incubation status.
 - `source`: canonical Apache Casbin repository, full upstream commit, and safe
   archive prefix.
@@ -17,7 +17,7 @@ reviewed template in place.
 - `signing`: public Apache ID/fingerprint, official KEYS URL, project UID policy,
   and RSA minimum. These identifiers are public; private keys/passphrases are not.
 - `distribution`: fixed official Casbin incubator dist-dev staging location.
-- `runtime`: ignored state directory and reviewed Docker/Podman Go sandbox.
+- `runtime`: ignored state directory.
 
 ## Release-ready semantics
 
@@ -32,7 +32,8 @@ enforces cross-field and release-ready rules:
   arbitrary commands, and unsupported adapters are rejected.
 
 Configuration contains no shell command. `go test ./...` belongs to the trusted
-adapter implementation and runs only in the container.
+adapter implementation and runs from the disposable extracted source tree with
+the installed host Go toolchain.
 
 ## Values humans normally change
 
@@ -41,8 +42,6 @@ adapter implementation and runs only in the container.
 3. `source.archivePrefix` and `release.artifactBaseName`, derived as
    `apache-casbin-<version>-src`.
 4. `signing.apacheId` and public full fingerprint.
-5. Container engine (`docker` or `podman`) when the reviewed local environment
-   requires it.
 
 Never place passwords, private keys, tokens, cookies, SSH material, or private
 mail in configuration.

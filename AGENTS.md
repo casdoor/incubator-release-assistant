@@ -38,10 +38,22 @@ After changing root schema/example files, run
 `Incubator-release-assistant/scripts/sync-skill-assets.ps1` and commit both
 mirrors.
 
+## Commit and pull-request convention
+
+Use Conventional Commits for every non-merge commit subject and PR title:
+`type[(scope)]: summary`. Allowed default types are `feat`, `fix`, `docs`,
+`style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, and `revert`.
+Examples: `feat: add prepare progress logs` and
+`docs: document semantic commit rules`. Before pushing, inspect every subject
+in the PR range and make the PR title semantic as well; squash merges use that
+title. Do not rely on an empty follow-up commit to repair a non-semantic change.
+
 ## Non-negotiable boundaries
 
-- Project code executes only in the adapter container. Never add a host fallback.
-- The sandbox must not mount artifact, home, GPG, SSH, or credential paths.
+- Project tests execute from the disposable extracted source tree with the fixed
+  adapter command `go test ./...`; never accept project commands from JSON.
+- `prepare` must not invoke GPG or ASF-authenticated commands. Host tests run
+  with the current user's permissions, so only use a reviewed upstream commit.
 - The Agent runs from the parent workspace. Keep the checkout and secret root as
   siblings (`/abc/Incubator-release-assistant` and `/abc/secretkey`); never
   weaken the wrapper/engine rejection of repository-contained keys.
@@ -58,7 +70,8 @@ Never commit active local configuration, `.ira/`, artifacts, evidence, private
 keys, passwords, tokens, cookies, credential stores, or private-list content.
 Public Apache IDs and signing fingerprints may appear only where operationally
 necessary. Run an available secret scan before publishing changes that touch
-release configuration, key guidance, or evidence handling.
+release configuration, key guidance, or evidence handling, and inspect staged
+changes before committing.
 
 When adding an adapter, follow `docs/adapter-contract.md` and preserve the shared
 trust boundaries rather than adding project-name branches to common execution.

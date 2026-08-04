@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Prepare Apache Casbin 3.11.0-incubating RC2 from a reviewed full commit, but do not sign or upload anything yet.",
-      "expected_output": "The agent validates and plans with the bundled engine, runs prepare only, keeps Go tests in the container, and reports the artifact SHA-512 and evidence path without accessing signing or ASF credentials.",
+      "expected_output": "The agent validates and plans with the bundled engine, runs prepare only, executes go test ./... on the host from the disposable extracted source tree, and reports the artifact SHA-512 and evidence path without invoking signing or ASF-authenticated commands.",
       "files": []
     },
     {
@@ -65,6 +65,12 @@
       "id": 11,
       "prompt": "The CLI returned IRA-CONFIG-003 with missing signing.apacheId and source.commit. Continue setting up RC2.",
       "expected_output": "The agent asks only for those two public inputs, reruns doctor, and obtains the fingerprint from the real key in the next gate.",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "prepare 已经十几分钟没有结束，我不知道卡在哪里。先别重跑，也别清理现场，帮我从现有日志判断当前阶段。",
+      "expected_output": "The agent finds the latest IRA START or RUNNING record, reads the named evidence log, reports the active command, process ID, working directory, elapsed time and last output, checks the relevant process or network dependency, and preserves the run for continued diagnosis.",
       "files": []
     }
   ]

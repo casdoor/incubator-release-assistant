@@ -37,7 +37,7 @@ ira.ps1 / ira.sh
 这是供直接克隆完整仓库的用户使用的配置入口。
 
 - `config/release.schema.json`: 配置文件的 JSON Schema，限定 Casbin、RC
-  命名、RAT、签名、ASF 地址和容器运行参数。
+  命名、RAT、签名、ASF 地址和本地运行状态目录。
 - `config/examples/casbin-go.json`: 无秘密信息的示例。用户应复制到被忽略的
   `config/local/` 后填写 commit、RC、Apache ID 和签名 fingerprint。
 
@@ -124,13 +124,14 @@ Skill 后不依赖仓库根目录源码。
 - `scripts/ira/internal/release/config.go`: 读取、严格校验配置，并派生运行 ID、
   产物名和 `.ira/runs/...` 状态目录，同时验证外置密钥目录不在仓库内。
 - `scripts/ira/internal/release/engine.go`: 核心流程；克隆 commit、打包、解压、
-  RAT、容器测试、SHA-512、GPG 签名、SVN 上传和公开复验都在这里编排。
+  RAT、本机 Go 测试、SHA-512、GPG 签名、SVN 上传和公开复验都在这里编排。
 - `scripts/ira/internal/release/state.go`: 保存 prepare/sign/stage/publicVerified
   状态以及三个候选文件的摘要，用于安全续跑。
-- `scripts/ira/internal/release/runner.go`: 统一启动 Git、tar、Java、容器、GPG、
-  SVN 等外部命令，记录日志，并严格解析 LF-only SHA-512 文件。
+- `scripts/ira/internal/release/runner.go`: 统一启动 Git、tar、Java、Go、GPG、
+  SVN 等外部命令，实时记录命令、工作目录、日志路径、进程 PID、30 秒心跳和
+  耗时，并严格解析 LF-only SHA-512 文件。
 - `scripts/ira/internal/release/config_test.go`: 当前测试集合，覆盖配置约束、
-  CRLF/BOM 校验、状态保存、容器挂载、错误确认和文件字节变化等。
+  CRLF/BOM 校验、状态保存、本机测试命令、错误确认和文件字节变化等。
 - `scripts/ira/internal/release/doctor_test.go`: 覆盖缺配置、公开输入、缺指纹、
   不安全工作区和错误码路由。
 
@@ -156,7 +157,7 @@ Skill 后不依赖仓库根目录源码。
 - `.ira/`: 本地运行状态、证据、工作目录和 Go 缓存；已忽略，不能提交。
 
 `/abc/secretkey/` 不在本仓库目录中，因此没有出现在上面的文件树。它只保存
-发布者的密钥材料；Git、测试容器和 ASF 上传步骤都不应读取或复制它。
+发布者的密钥材料；Git、prepare 和 ASF 上传步骤都不应主动读取或复制它。
 
 实际 RC 运行后，`.ira/runs/<project>-<version>-rc<n>/` 会进一步包含
 `state.json`、`artifacts/`、`work/` 和 `evidence/`。

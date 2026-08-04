@@ -25,21 +25,20 @@ func (e Engine) Plan(cfg *Config) string {
   Commit:        %s
   Candidate:     %s
   Artifact:      %s
-  Test sandbox:  %s image %s (network: %s)
+  Go tests:      host go toolchain in extracted source tree
   State:         %s
 
 Trust boundaries
-  1. prepare: clone/archive/RAT; run Go tests only inside the container, without host credentials or artifact access
+  1. prepare: clone/archive/RAT; run Go tests from the disposable extracted source tree on the host
   2. sign: verify the prepared SHA-512, then require the exact digest as human confirmation before using GPG
   3. stage: require "STAGE RC%d", refuse an existing remote RC, upload, then re-download and verify public bytes
 `, cfg.Project.DisplayName, cfg.Project.ID, cfg.Project.Adapter, cfg.Source.Repository,
 		stringsLower(cfg.Source.Commit), cfg.RunID(), cfg.ArtifactName(),
-		cfg.Runtime.Container.Engine, cfg.Runtime.Container.Image, cfg.Runtime.Container.Network,
 		cfg.Runtime.StateDirectory, cfg.Release.RC)
 }
 
 func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
-	for _, command := range []string{"git", "tar", "java", "svn", cfg.Runtime.Container.Engine} {
+	for _, command := range []string{"git", "tar", "java", "svn", "go"} {
 		if err := commandExists(command); err != nil {
 			return nil, err
 		}
@@ -123,7 +122,7 @@ func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
 	if err := e.runRAT(cfg, runRoot, extracted); err != nil {
 		return nil, err
 	}
-	if err := e.runCasbinGoTests(cfg, runRoot, extracted); err != nil {
+	if err := e.runCasbinGoTests(runRoot, extracted); err != nil {
 		return nil, err
 	}
 
@@ -155,35 +154,15 @@ func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
 	return state, nil
 }
 
-func (e Engine) runCasbinGoTests(cfg *Config, runRoot, extracted string) error {
+func (e Engine) runCasbinGoTests(runRoot, extracted string) error {
 	evidence := filepath.Join(runRoot, "evidence", "go-test.log")
-	args := casbinGoTestArgs(cfg, extracted)
-	fmt.Fprintln(e.out(), "Running repository code in an isolated container. The artifact directory and host credentials are not mounted.")
-	if err := e.Runner.Run(evidence, "", cfg.Runtime.Container.Engine, args...); err != nil {
-		return err
-	}
-	imageID, err := e.Runner.Output("", cfg.Runtime.Container.Engine, "image", "inspect", "--format={{.Id}}", cfg.Runtime.Container.Image)
-	if err != nil {
-		return fmt.Errorf("tests passed but container image identity could not be recorded: %w", err)
-	}
-	return writeText(filepath.Join(runRoot, "evidence", "container-image.txt"), cfg.Runtime.Container.Image+"\n"+imageID+"\n")
+	dir, name, args := casbinGoTestCommand(extracted)
+	fmt.Fprintln(e.out(), "Running go test ./... on the host in the disposable extracted source tree.")
+	return e.Runner.Run(evidence, dir, name, args...)
 }
 
-func casbinGoTestArgs(cfg *Config, extracted string) []string {
-	args := []string{
-		"run", "--rm", "--read-only", "--cap-drop=ALL",
-		"--security-opt=no-new-privileges", "--pids-limit=512",
-		"--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=2g",
-		"--tmpfs", "/work:rw,nosuid,size=2g",
-		"--mount", "type=bind,src=" + extracted + ",dst=/input,readonly",
-		"--workdir", "/work", "--env", "GOCACHE=/tmp/go-build",
-		"--env", "GOMODCACHE=/tmp/go-mod",
-	}
-	if cfg.Runtime.Container.Network == "none" {
-		args = append(args, "--network", "none")
-	}
-	args = append(args, cfg.Runtime.Container.Image, "sh", "-c", "cp -a /input/. /work/ && go test ./...")
-	return args
+func casbinGoTestCommand(extracted string) (string, string, []string) {
+	return extracted, "go", []string{"test", "./..."}
 }
 
 func (e Engine) runRAT(cfg *Config, runRoot, extracted string) error {

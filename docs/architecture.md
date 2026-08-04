@@ -13,7 +13,7 @@ reviewed JSON
     v
 strict config + project policy
     |
-    +--> prepare domain --> adapter sandbox --> artifact + SHA-512 + evidence
+    +--> prepare domain --> host adapter test --> artifact + SHA-512 + evidence
     |
     +--> sign domain ----> exact digest confirmation --> external GPG home + official KEYS
     |
@@ -28,7 +28,7 @@ strict config + project policy
 - the Apache Casbin incubator KEYS and dist locations;
 - `LICENSE`, `NOTICE`, a disclaimer, `go.mod`, `go.sum`, and `.rat-excludes`;
 - Apache RAT 0.18;
-- `go test ./...` in a reviewed Go container;
+- `go test ./...` with the installed host Go toolchain;
 
 This intentional narrowness makes the first implementation executable without
 pretending that unimplemented repositories are supported.
@@ -50,10 +50,11 @@ of the three files require a new RC number.
 
 ## Trust boundaries
 
-Repository tests execute only in Docker/Podman. The container mounts the
-disposable extracted source, not the host home, artifact directory, GPG keyring,
-or SVN credentials. Signing is a later process which executes no source code.
-Staging is a third process with exact confirmation and no credential cache.
+Repository tests execute from the disposable extracted source tree using the
+fixed adapter command `go test ./...`. They run with the current user's host
+permissions, so the selected upstream commit must be reviewed. Signing is a
+later process which executes no source code. Staging is a third process with
+exact confirmation and no credential cache.
 
 The caller workspace and repository are separate security roots. In the normal
 layout Claude Code runs from `/abc`, the checkout is
@@ -64,15 +65,15 @@ rejects one captured by any larger Git worktree, then passes the external home
 explicitly to secret-key inspection and signing. `/abc` is therefore a plain
 workspace rather than another Git checkout.
 
-This separation is more important than the implementation language: it prevents
-a compromised test from modifying the signed archive or reading release keys.
+This separation prevents the engine from accidentally mixing project testing,
+signing, and staging. It is not an operating-system sandbox for host tests.
 
 ## Extension sequence
 
 1. Add an adapter implementation and project policy as described in
    `adapter-contract.md`.
 2. Add a reviewed example with no credentials.
-3. Add contract tests proving legal files, archive identity, sandbox behavior,
+3. Add contract tests proving legal files, archive identity, host test behavior,
    and the dist-dev endpoint cannot be weakened.
 4. Add a CI matrix for the adapter's supported host platforms.
 5. Only then expose the adapter in the schema and Skill.
