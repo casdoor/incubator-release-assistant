@@ -201,14 +201,15 @@ func TestStateCanBeSavedRepeatedlyOnWindows(t *testing.T) {
 	}
 }
 
-func TestCasbinGoTestsRunFromExtractedSourceOnHost(t *testing.T) {
-	extracted := filepath.Join("safe", "extracted")
-	dir, name, args := casbinGoTestCommand(extracted)
-	if dir != extracted {
-		t.Fatalf("unexpected test directory: %s", dir)
+func TestPlanDoesNotRerunTargetProjectTests(t *testing.T) {
+	plan := (Engine{}).Plan(validConfig(t))
+	if strings.Contains(plan, "go test") || strings.Contains(plan, "run Go tests") {
+		t.Fatalf("plan still promises target-project test execution: %s", plan)
 	}
-	if name != "go" || strings.Join(args, " ") != "test ./..." {
-		t.Fatalf("unexpected host test command: %s %s", name, strings.Join(args, " "))
+	for _, expected := range []string{"not rerun by IRA", "GitHub CI", "do not execute code from the target project"} {
+		if !strings.Contains(plan, expected) {
+			t.Fatalf("plan does not explain the lightweight test boundary %q: %s", expected, plan)
+		}
 	}
 }
 

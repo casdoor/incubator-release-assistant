@@ -8,7 +8,7 @@ reviewed template in place.
 ## Current contract
 
 - `schemaVersion`: must be `4`. Version 4 removes the Docker/Podman runtime
-  configuration and uses the installed host Go toolchain.
+  configuration.
 - `project`: fixed Casbin identity, `casbin-go` adapter, and incubation status.
 - `source`: canonical Apache Casbin repository, full upstream commit, and safe
   archive prefix.
@@ -31,9 +31,8 @@ enforces cross-field and release-ready rules:
 - path traversal, unknown fields, alternate repositories, alternate ASF URLs,
   arbitrary commands, and unsupported adapters are rejected.
 
-Configuration contains no shell command. `go test ./...` belongs to the trusted
-adapter implementation and runs from the disposable extracted source tree with
-the installed host Go toolchain.
+Configuration contains no shell command. IRA does not execute target-project
+tests during `prepare`; confirm the exact selected commit's GitHub CI separately.
 
 ## Values humans normally change
 

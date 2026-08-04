@@ -25,11 +25,11 @@ func (e Engine) Plan(cfg *Config) string {
   Commit:        %s
   Candidate:     %s
   Artifact:      %s
-  Go tests:      host go toolchain in extracted source tree
+  Project tests: not rerun by IRA; verify the selected commit's GitHub CI
   State:         %s
 
 Trust boundaries
-  1. prepare: clone/archive/RAT; run Go tests from the disposable extracted source tree on the host
+  1. prepare: clone/archive/RAT; do not execute code from the target project
   2. sign: verify the prepared SHA-512, then require the exact digest as human confirmation before using GPG
   3. stage: require "STAGE RC%d", refuse an existing remote RC, upload, then re-download and verify public bytes
 `, cfg.Project.DisplayName, cfg.Project.ID, cfg.Project.Adapter, cfg.Source.Repository,
@@ -38,7 +38,7 @@ Trust boundaries
 }
 
 func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
-	for _, command := range []string{"git", "tar", "java", "svn", "go"} {
+	for _, command := range []string{"git", "tar", "java", "svn"} {
 		if err := commandExists(command); err != nil {
 			return nil, err
 		}
@@ -122,9 +122,6 @@ func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
 	if err := e.runRAT(cfg, runRoot, extracted); err != nil {
 		return nil, err
 	}
-	if err := e.runCasbinGoTests(runRoot, extracted); err != nil {
-		return nil, err
-	}
 
 	digest, err := sha512File(artifactPath)
 	if err != nil {
@@ -153,18 +150,6 @@ func (e Engine) Prepare(cfg *Config, clean bool) (*State, error) {
 	fmt.Fprintf(e.out(), "Prepared and verified %s\nSHA-512: %s\nNext: ira sign --config %q --confirm %s\n", artifactPath, digest, cfg.Path, digest)
 	return state, nil
 }
-
-func (e Engine) runCasbinGoTests(runRoot, extracted string) error {
-	evidence := filepath.Join(runRoot, "evidence", "go-test.log")
-	dir, name, args := casbinGoTestCommand(extracted)
-	fmt.Fprintln(e.out(), "Running go test ./... on the host in the disposable extracted source tree.")
-	return e.Runner.Run(evidence, dir, name, args...)
-}
-
-func casbinGoTestCommand(extracted string) (string, string, []string) {
-	return extracted, "go", []string{"test", "./..."}
-}
-
 func (e Engine) runRAT(cfg *Config, runRoot, extracted string) error {
 	tools := filepath.Join(runRoot, "tools")
 	evidence := filepath.Join(runRoot, "evidence")
