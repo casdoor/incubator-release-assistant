@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1",
+  "name": "Casbin release queue",
+  "items": [
+    {
+      "id": "casbin",
+      "displayName": "Apache Casbin",
+      "repository": "https://github.com/apache/casbin.git",
+      "adapter": "casbin-go",
+      "releaseConfig": "casbin-go.json",
+      "state": "queued"
+    },
+    {
+      "id": "casbin-sqlx-adapter",
+      "displayName": "Casbin SQLX adapter",
+      "repository": "https://github.com/apache/casbin-sqlx-adapter.git",
+      "adapter": "go",
+      "state": "blocked",
+      "note": "Add and test a Go adapter before IRA can run this repository."
+    }
+  ]
+}

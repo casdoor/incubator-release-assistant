@@ -3,10 +3,12 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet("doctor", "validate", "plan", "prepare", "sign", "stage", "verify-public", "version")]
+    [ValidateSet("doctor", "validate", "plan", "prepare", "sign", "stage", "verify-public", "queue-status", "queue-prepare", "adapters", "version")]
     [string]$Command,
 
     [string]$Config,
+
+    [string]$Queue,
 
     [string]$Confirm,
 

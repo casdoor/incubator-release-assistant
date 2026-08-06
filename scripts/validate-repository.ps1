@@ -7,7 +7,9 @@ $handbookSkill = Join-Path $root "skills\apache-incubator-handbook"
 
 $pairs = @(
     @((Join-Path $root "config\release.schema.json"), (Join-Path $releaseSkill "assets\release.schema.json")),
-    @((Join-Path $root "config\examples\casbin-go.json"), (Join-Path $releaseSkill "assets\examples\casbin-go.json"))
+    @((Join-Path $root "config\examples\casbin-go.json"), (Join-Path $releaseSkill "assets\examples\casbin-go.json")),
+    @((Join-Path $root "config\release-queue.schema.json"), (Join-Path $releaseSkill "assets\release-queue.schema.json")),
+    @((Join-Path $root "config\examples\casbin-release-queue.json"), (Join-Path $releaseSkill "assets\examples\casbin-release-queue.json"))
 )
 
 foreach ($pair in $pairs) {
@@ -20,6 +22,8 @@ foreach ($pair in $pairs) {
 
 Get-Content -LiteralPath (Join-Path $root "config\release.schema.json") -Raw | ConvertFrom-Json | Out-Null
 Get-Content -LiteralPath (Join-Path $root "config\examples\casbin-go.json") -Raw | ConvertFrom-Json | Out-Null
+Get-Content -LiteralPath (Join-Path $root "config\release-queue.schema.json") -Raw | ConvertFrom-Json | Out-Null
+Get-Content -LiteralPath (Join-Path $root "config\examples\casbin-release-queue.json") -Raw | ConvertFrom-Json | Out-Null
 Get-Content -LiteralPath (Join-Path $releaseSkill "evals\evals.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
 Get-Content -LiteralPath (Join-Path $handbookSkill "evals\evals.json") -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
 
@@ -36,6 +40,8 @@ foreach ($required in @(
     "scripts\run.sh",
     "assets\release.schema.json",
     "assets\examples\casbin-go.json",
+    "assets\release-queue.schema.json",
+    "assets\examples\casbin-release-queue.json",
     "assets\examples\key-metadata.example.json",
     "assets\examples\doctor-report.example.json",
     "references\configuration.md",

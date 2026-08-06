@@ -22,8 +22,13 @@ func main() {
 		fmt.Println("ira", version)
 		return
 	}
+	if command == "adapters" {
+		fmt.Print(release.DescribeAdapters())
+		return
+	}
 	set := flag.NewFlagSet(command, flag.ExitOnError)
 	configPath := set.String("config", "", "path to a release-ready JSON configuration")
+	queuePath := set.String("queue", "", "path to a release queue JSON configuration")
 	confirmation := set.String("confirm", "", "exact confirmation required for signing or staging")
 	clean := set.Bool("clean", false, "remove only the matching unstaged local run before preparing")
 	set.SetOutput(os.Stderr)
@@ -37,6 +42,27 @@ func main() {
 		encoder.SetIndent("", "  ")
 		if err := encoder.Encode(report); err != nil {
 			fail(err)
+		}
+		return
+	}
+	if command == "queue-status" || command == "queue-prepare" {
+		if *queuePath == "" {
+			fail(fmt.Errorf("--queue is required"))
+		}
+		if *clean {
+			fail(fmt.Errorf("--clean is not available for queue commands; inspect each run before removing local evidence"))
+		}
+		queue, err := release.LoadQueue(*queuePath)
+		if err != nil {
+			fail(err)
+		}
+		switch command {
+		case "queue-status":
+			fmt.Print(engine.QueueStatus(queue))
+		case "queue-prepare":
+			if err := engine.PrepareCurrentQueueItem(queue); err != nil {
+				fail(err)
+			}
 		}
 		return
 	}
@@ -81,10 +107,18 @@ Usage:
   %s sign          --config <file> --confirm <artifact-sha512>
   %s stage         --config <file> --confirm "STAGE RC<number>"
   %s verify-public --config <file>
+
+  %s queue-status  --queue <file>
+  %s queue-prepare --queue <file>
+  %s adapters
   %s version
 
+Queue commands traverse one ordered release queue. They print the current item,
+its next required action, and the next queued item. queue-prepare runs only the
+current item's safe prepare step; signing and staging remain separate commands.
+
 The current build intentionally supports only the Apache Casbin Go adapter.
-`, name, name, name, name, name, name, name, name)
+`, name, name, name, name, name, name, name, name, name, name, name)
 }
 
 func fail(err error) {
