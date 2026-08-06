@@ -7,7 +7,7 @@ Read this reference when `doctor` returns `IRA-DEPENDENCY-001` or
 
 | Command | Used for | Required before |
 | --- | --- | --- |
-| `go` | run the bundled IRA engine and project tests | every command and `prepare` |
+| `go` | run the bundled IRA engine | every command |
 | `git` | fetch and archive the selected commit | `prepare` |
 | `tar` | inspect the source archive | `prepare` |
 | `java` | run Apache RAT | `prepare` |

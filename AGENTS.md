@@ -50,10 +50,11 @@ title. Do not rely on an empty follow-up commit to repair a non-semantic change.
 
 ## Non-negotiable boundaries
 
-- Project tests execute from the disposable extracted source tree with the fixed
-  adapter command `go test ./...`; never accept project commands from JSON.
-- `prepare` must not invoke GPG or ASF-authenticated commands. Host tests run
-  with the current user's permissions, so only use a reviewed upstream commit.
+- `prepare` must not execute target-project tests or accept project commands
+  from JSON. Verify the selected commit's existing GitHub CI separately; IRA's
+  own unit tests belong in this repository's lightweight CI.
+- `prepare` must not invoke GPG or ASF-authenticated commands. It archives and
+  inspects a reviewed upstream commit without running code from that project.
 - The Agent runs from the parent workspace. Keep the checkout and secret root as
   siblings (`/abc/Incubator-release-assistant` and `/abc/secretkey`); never
   weaken the wrapper/engine rejection of repository-contained keys.
