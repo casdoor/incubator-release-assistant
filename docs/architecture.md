@@ -20,6 +20,10 @@ strict config + project policy
     +--> stage domain ---> RC confirmation --> ASF dist --> public verification
 ```
 
+The engine finds the project policy through a registered adapter ID. This keeps
+the ordered queue generic: it can show every repository, but it only runs an
+item when its adapter is registered and its release configuration validates.
+
 ## Current adapter
 
 `casbin-go` is the only accepted adapter. Its policy fixes:
@@ -33,6 +37,12 @@ strict config + project policy
 
 This intentional narrowness makes the first implementation executable without
 pretending that unimplemented repositories are supported.
+
+Casbin's upstream tag workflow is a separate final-publication surface:
+`vX.Y.Z-rcN` produces a GitHub pre-release, while `vX.Y.Z` produces the GitHub
+release and triggers Go module proxy publication. See
+`docs/adapter-research/casbin-go.md`. IRA records this as adapter policy but
+does not yet create final tags or verify those published surfaces.
 
 ## State and resumption
 
