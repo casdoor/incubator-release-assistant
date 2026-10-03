@@ -84,7 +84,7 @@ func TestRejectsUnsupportedAdapter(t *testing.T) {
 	cfg := validConfig(t)
 	cfg.Project.Adapter = "java"
 	err := cfg.Validate()
-	if err == nil || !strings.Contains(err.Error(), "no other adapter is implemented") {
+	if err == nil || !strings.Contains(err.Error(), "adapter is not registered") {
 		t.Fatalf("expected unsupported adapter error, got %v", err)
 	}
 }

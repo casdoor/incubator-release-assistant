@@ -34,6 +34,18 @@ while (($#)); do
     else
       args+=("$caller_dir/$1")
     fi
+  elif [[ "$1" == "--queue" ]]; then
+    args+=("$1")
+    shift
+    if (($# == 0)); then
+      echo "--queue requires a path" >&2
+      exit 2
+    fi
+    if [[ "$1" = /* ]]; then
+      args+=("$1")
+    else
+      args+=("$caller_dir/$1")
+    fi
   else
     args+=("$1")
   fi

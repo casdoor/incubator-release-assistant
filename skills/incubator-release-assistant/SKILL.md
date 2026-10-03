@@ -60,6 +60,24 @@ bash <skill-directory>/scripts/run.sh plan --config <config>
 Stop when the configuration does not validate. Tell the user exactly which
 field must be supplied or corrected, then continue from the same step.
 
+## Coordinate a release queue
+
+When the user supplies several repositories from a tracker, do not attempt to
+publish them together. Use an ordered queue configuration and show the user
+the current repository, its next required action, and the next queued item:
+
+```powershell
+& <skill-directory>\scripts\run.ps1 queue-status -Queue <queue>
+& <skill-directory>\scripts\run.ps1 queue-prepare -Queue <queue>
+```
+
+`queue-prepare` runs only the current item's `prepare` step. It must not sign,
+stage, vote, or publish a later item. The queue contains repository data and
+config paths only; never add command strings. Stop on a `blocked` or `manual`
+item and state its note. An item may use an executable adapter only after that
+adapter and its contract tests exist. Use `adapters` to determine which tracker
+items IRA can actually run.
+
 ## Route incomplete setup through bundled knowledge
 
 Do not leave a new release manager with a terse engine error. Use the code and

@@ -45,6 +45,27 @@ tests during `prepare`; confirm the exact selected commit's GitHub CI separately
 Never place passwords, private keys, tokens, cookies, SSH material, or private
 mail in configuration.
 
+## Ordered release queue
+
+`assets/release-queue.schema.json` and
+`assets/examples/casbin-release-queue.json` define an ordered worklist for
+several repositories. Copy both the queue and each referenced release config to
+the same ignored local directory. `releaseConfig` is a safe relative JSON path
+resolved from the queue file's directory.
+
+Each item records its repository identity, adapter, and one of four states:
+
+- `queued`: has a release config and can be assessed against local IRA state;
+- `blocked`: requires a non-empty explanation before the queue can continue;
+- `manual`: records work IRA must not perform and requires a non-empty note;
+- `complete`: a reviewed external completion record with a non-empty note.
+
+`queue-status` reports the first incomplete item as current. It derives the
+next action from the matching release state: `prepare`, `sign`, `stage`, or
+complete. `queue-prepare` only prepares that current item; signing and staging
+remain individual, explicitly confirmed commands. The queue does not accept
+shell commands and does not make an unsupported adapter executable.
+
 ## External secret directory
 
 The secret location is deliberately not a JSON field. Start the Agent from the
