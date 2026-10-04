@@ -187,11 +187,11 @@ func (q *Queue) Progress(item QueueItem) QueueProgress {
 	case state.PublicVerified:
 		progress.State = "complete"
 		progress.NextAction = "none"
-		progress.Detail = "public candidate bytes were verified"
+		progress.Detail = "RC is staged and its public bytes were verified; voting and final publication remain human work"
 	case state.Staged:
-		progress.State = "blocked"
-		progress.NextAction = "inspect staging evidence"
-		progress.Detail = "staged state is missing public verification"
+		progress.State = "ready"
+		progress.NextAction = "verify-public"
+		progress.Detail = "RC is staged; public byte, checksum, and signature verification is still pending"
 	case state.Signed:
 		progress.State = "ready"
 		progress.NextAction = "stage"
@@ -209,10 +209,21 @@ func (q *Queue) Progress(item QueueItem) QueueProgress {
 }
 
 func (q *Queue) Current() (int, QueueProgress) {
+	return currentProgress(q.progressAll())
+}
+
+func (q *Queue) progressAll() []QueueProgress {
+	progress := make([]QueueProgress, len(q.Items))
 	for index, item := range q.Items {
-		progress := q.Progress(item)
-		if progress.State != "complete" {
-			return index, progress
+		progress[index] = q.Progress(item)
+	}
+	return progress
+}
+
+func currentProgress(progress []QueueProgress) (int, QueueProgress) {
+	for index, item := range progress {
+		if item.State != "complete" {
+			return index, item
 		}
 	}
 	return -1, QueueProgress{}
@@ -221,20 +232,19 @@ func (q *Queue) Current() (int, QueueProgress) {
 func (e Engine) QueueStatus(q *Queue) string {
 	var output strings.Builder
 	fmt.Fprintf(&output, "Release queue: %s\n", q.Name)
-	for index, item := range q.Items {
-		progress := q.Progress(item)
-		fmt.Fprintf(&output, "  %d. %s [%s] — %s\n", index+1, item.DisplayName, progress.State, progress.NextAction)
+	progress := q.progressAll()
+	for index, item := range progress {
+		fmt.Fprintf(&output, "  %d. %s [%s] — %s\n", index+1, item.Item.DisplayName, item.State, item.NextAction)
 	}
-	index, current := q.Current()
+	index, current := currentProgress(progress)
 	if index == -1 {
 		output.WriteString("\nCurrent: none; every queue item is complete.\nNext queued item: none.\n")
 		return output.String()
 	}
 	fmt.Fprintf(&output, "\nCurrent: %d. %s\nState: %s\nNext action: %s\nDetail: %s\n", index+1, current.Item.DisplayName, current.State, current.NextAction, current.Detail)
-	for next := index + 1; next < len(q.Items); next++ {
-		candidate := q.Progress(q.Items[next])
-		if candidate.State != "complete" {
-			fmt.Fprintf(&output, "Next queued item: %d. %s [%s]\n", next+1, candidate.Item.DisplayName, candidate.State)
+	for next := index + 1; next < len(progress); next++ {
+		if progress[next].State != "complete" {
+			fmt.Fprintf(&output, "Next queued item: %d. %s [%s]\n", next+1, progress[next].Item.DisplayName, progress[next].State)
 			return output.String()
 		}
 	}

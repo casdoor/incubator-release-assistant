@@ -61,9 +61,14 @@ Each item records its repository identity, adapter, and one of four states:
 - `complete`: a reviewed external completion record with a non-empty note.
 
 `queue-status` reports the first incomplete item as current. It derives the
-next action from the matching release state: `prepare`, `sign`, `stage`, or
-complete. `queue-prepare` only prepares that current item; signing and staging
-remain individual, explicitly confirmed commands. The queue does not accept
+next action from the matching release state: `prepare`, `sign`, `stage`,
+`verify-public`, or complete. `queue-prepare` only prepares that current item;
+signing, staging, and public verification remain individual commands.
+
+For a `queued` item, IRA's "complete" means only that the RC is staged in ASF
+`dist/dev` and its public bytes were verified. The vote, the final tag, and
+package-registry publication are still human work; the queue simply moves on
+to the next repository while that vote runs. The queue does not accept
 shell commands and does not make an unsupported adapter executable.
 
 ## External secret directory

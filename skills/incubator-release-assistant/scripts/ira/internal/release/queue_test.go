@@ -67,7 +67,7 @@ func TestQueueStatusShowsCurrentAndNextItem(t *testing.T) {
 	writeQueueReleaseConfig(t, directory)
 	queue := writeQueue(t, directory, []QueueItem{
 		queuedCasbinItem(),
-		{ID: "sqlx", DisplayName: "Casbin SQLX adapter", Repository: "https://github.com/apache/casbin-sqlx-adapter.git", Adapter: "go", State: "blocked", Note: "adapter has not been implemented"},
+		{ID: "sqlx", DisplayName: "Casbin SQLX adapter", Repository: "https://github.com/apache/casbin-sqlx-adapter.git", Adapter: "rust-cargo", State: "blocked", Note: "adapter has not been implemented"},
 	})
 	status := (Engine{}).QueueStatus(queue)
 	for _, expected := range []string{"Current: 1. Apache Casbin", "Next action: prepare", "Next queued item: 2. Casbin SQLX adapter [blocked]"} {
@@ -82,7 +82,7 @@ func TestQueueAdvancesAfterPublicVerification(t *testing.T) {
 	configPath := writeQueueReleaseConfig(t, directory)
 	queue := writeQueue(t, directory, []QueueItem{
 		queuedCasbinItem(),
-		{ID: "sqlx", DisplayName: "Casbin SQLX adapter", Repository: "https://github.com/apache/casbin-sqlx-adapter.git", Adapter: "go", State: "blocked", Note: "adapter has not been implemented"},
+		{ID: "sqlx", DisplayName: "Casbin SQLX adapter", Repository: "https://github.com/apache/casbin-sqlx-adapter.git", Adapter: "rust-cargo", State: "blocked", Note: "adapter has not been implemented"},
 	})
 	cfg, err := LoadConfig(configPath)
 	if err != nil {
@@ -106,6 +106,36 @@ func TestQueueAdvancesAfterPublicVerification(t *testing.T) {
 	status := (Engine{}).QueueStatus(queue)
 	if !strings.Contains(status, "Current: 2. Casbin SQLX adapter") {
 		t.Fatalf("queue did not advance after completion:\n%s", status)
+	}
+}
+
+func TestQueueAsksForPublicVerificationAfterStaging(t *testing.T) {
+	directory := t.TempDir()
+	configPath := writeQueueReleaseConfig(t, directory)
+	queue := writeQueue(t, directory, []QueueItem{queuedCasbinItem()})
+	cfg, err := LoadConfig(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runRoot, err := cfg.RunRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(runRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	state := NewState(cfg)
+	state.Prepared = true
+	state.Signed = true
+	state.Staged = true
+	if err := state.Save(runRoot); err != nil {
+		t.Fatal(err)
+	}
+	status := (Engine{}).QueueStatus(queue)
+	for _, expected := range []string{"Current: 1. Apache Casbin", "State: ready", "Next action: verify-public"} {
+		if !strings.Contains(status, expected) {
+			t.Fatalf("staged queue item is missing %q:\n%s", expected, status)
+		}
 	}
 }
 

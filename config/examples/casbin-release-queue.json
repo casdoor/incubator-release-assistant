@@ -14,9 +14,9 @@
       "id": "casbin-sqlx-adapter",
       "displayName": "Casbin SQLX adapter",
       "repository": "https://github.com/apache/casbin-sqlx-adapter.git",
-      "adapter": "go",
+      "adapter": "rust-cargo",
       "state": "blocked",
-      "note": "Add and test a Go adapter before IRA can run this repository."
+      "note": "Rust crate published to crates.io; add and test a rust-cargo adapter before IRA can run this repository."
     }
   ]
 }
