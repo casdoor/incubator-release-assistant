@@ -72,6 +72,11 @@ Agent 判断是 clone、RAT 或其他发布检查在等待。
 - [发布 ASF KEYS 文件](skills/incubator-release-assistant/references/asf-keys-publication.md)
 - [中断与恢复](skills/incubator-release-assistant/references/release-recovery.md)
 - [架构与安全模型](docs/architecture.md)
+- [Rust / crates.io 人工协作发版流程](docs/release-rust-crates.md)
+- [SQLx Adapter 1.9.0 完整发版案例](docs/cases/sqlx-adapter-1.9.0.md)
+
+Rust 文档覆盖源码投票、晋升、注册表失败恢复、官网和公告核验，供人工与 Agent
+协作参考；不代表 IRA 引擎已经支持 Rust 适配器。
 
 ## 许可证
 
