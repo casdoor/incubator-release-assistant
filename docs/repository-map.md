@@ -53,6 +53,9 @@ ira.ps1 / ira.sh
 ## `docs/`
 
 - `docs/repository-map.md`: 本目录地图。
+- `docs/release-rust-crates.md`: Rust/Cargo 人工协作发版流程、恢复分支与公开来源；
+  不代表引擎已支持 Rust。
+- `docs/cases/sqlx-adapter-1.9.0.md`: SQLx 完整发版的公开案例、处理结果与验证边界。
 - `docs/architecture.md`: 说明 prepare、sign、stage 三段流程、状态恢复和
   当前 `casbin-go` 适配边界。
 - `docs/security-model.md`: 罗列被保护资产、不可信输入、已有控制和剩余风险。
